@@ -1,11 +1,14 @@
 from ctypes import POINTER
 from enum import IntFlag
 
-from pynvml import StructCNvmlEventSetT
+from structs import CEventSet
 
 
 class EventType(IntFlag):
-    C_TYPE = POINTER(StructCNvmlEventSetT)
+    @property
+    def C_TYPE(self):
+        """ Must be a Property, because Enum Subclasses can't define members."""
+        return POINTER(CEventSet)
 
     NONE = 0
     SingleBitEccError = 1

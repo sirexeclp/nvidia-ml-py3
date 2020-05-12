@@ -1,7 +1,20 @@
 import string
 from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER
 
-from enums import LedColor, FanState
+from enums import LedColor, FanState, BridgeChipType
+
+
+# Alternative object
+# Allows the object to be printed
+# Allows mismatched types to be assigned
+#  - like None when the Structure variant requires c_uint
+class FriendlyObject(object):
+    def __init__(self, dictionary):
+        for x in dictionary:
+            setattr(self, x, dictionary[x])
+
+    def __str__(self):
+        return self.__dict__.__str__()
 
 
 class PrintableStructure(Structure):
@@ -38,6 +51,42 @@ class PrintableStructure(Structure):
             result.append(("%s: " + fmt) % (key, value))
         return self.__class__.__name__ + "(" + string.join(result, ", ") + ")"
 
+    def get_friendly_object(self):
+        d = {}
+        for x in self._fields_:
+            key = x[0]
+            value = getattr(self, key)
+            d[key] = value
+        obj = FriendlyObject(d)
+        return obj
+
+    @classmethod
+    def from_friendly_object(cls, obj):
+        model = cls()
+        for x in model._fields_:
+            key = x[0]
+            value = obj.__dict__[key]
+            setattr(model, key, value)
+        return model
+
+
+class CUnit(Structure):
+    pass  # opaque handle
+
+
+CUnitPointer = POINTER(CUnit)
+
+
+class CDevice(Structure):
+    pass  # opaque handle
+
+
+CDevicePointer = POINTER(CDevice)
+
+
+class CEventSet(Structure):
+    pass  # opaque handle
+
 
 class UnitInfo(PrintableStructure):
     _fields_ = [
@@ -51,7 +100,7 @@ class UnitInfo(PrintableStructure):
 class LedState(PrintableStructure):
     _fields_ = [
         ('cause', c_char * 256),
-        ('color', LedColor.C_TYPE),
+        ('color', LedColor.c_type),
     ]
 
 
@@ -67,7 +116,7 @@ class PSUInfo(PrintableStructure):
 class UnitFanInfo(PrintableStructure):
     _fields_ = [
         ('speed', c_uint),
-        ('state', FanState.C_TYPE),
+        ('state', FanState.c_type),
     ]
 
 
@@ -121,7 +170,7 @@ class ProcessInfo(PrintableStructure):
 
 class BridgeChipInfo(PrintableStructure):
     _fields_ = [
-        ('type', BridgehipType),
+        ('type', BridgeChipType.c_type),
         ('fwVersion', c_uint),
     ]
 
@@ -129,7 +178,7 @@ class BridgeChipInfo(PrintableStructure):
 class BridgeChipHierarchy(PrintableStructure):
     _fields_ = [
         ('bridgeCount', c_uint),
-        ('bridgehipInfo', cBridgeChipInfo * 128),
+        ('bridgeChipInfo', BridgeChipInfo * 128),
     ]
 
 
@@ -182,7 +231,7 @@ class ViolationTime(PrintableStructure):
 
 class EventData(PrintableStructure):
     _fields_ = [
-        ('devie', cDevice),
+        ('device', CDevicePointer),
         ('eventType', c_ulonglong),
         ('eventData', c_ulonglong)
     ]
@@ -199,24 +248,6 @@ class AccountingStats(PrintableStructure):
         ('isRunning', c_uint),
         ('reserved', c_uint * 5)
     ]
-
-
-class Unit(Structure):
-    pass  # opaque handle
-
-
-UnitPointer = POINTER(Unit)
-
-
-class Device(Structure):
-    pass  # opaque handle
-
-
-DevicePointer = POINTER(struct_c_nvmlDevice)
-
-
-class EventSet(Structure):
-    pass  # opaque handle
 
 
 class BAR1Memory(PrintableStructure):

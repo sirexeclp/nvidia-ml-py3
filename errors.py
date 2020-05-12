@@ -1,7 +1,8 @@
 from enums import UIntEnum
-
+from ctypes import c_char_p
 
 # from pynvml import nvmlErrorString
+
 
 
 class Return(UIntEnum):
@@ -53,7 +54,7 @@ class Return(UIntEnum):
     def get_exception(self):
         error2exception = {
             Return.ERROR_UNINITIALIZED: NVMLErrorUninitialized,
-            Return.ERROR_INVALID_ARGUMENT: NVMLErrorUninitializedInvalidArgument,
+            Return.ERROR_INVALID_ARGUMENT: NVMLErrorInvalidArgument,
             Return.ERROR_NOT_SUPPORTED: NVMLErrorNotSupported,
             Return.ERROR_NO_PERMISSION: NVMLErrorInsufficientPermissions,
             Return.ERROR_ALREADY_INITIALIZED: NVMLErrorAlreadyInitialized,
@@ -73,6 +74,23 @@ class Return(UIntEnum):
             Return.ERROR_UNKNOWN: NVMLErrorUnknown,
         }
         return error2exception[self]
+
+    @staticmethod
+    def check(ret: int):
+        if ret == Return.SUCCESS.value:
+            return Return(ret)
+        else:
+            raise NVMLError.from_return(ret)
+
+
+# Added in 2.285
+def nvmlErrorString(result):
+    from pynvml import NVMLLib
+    with NVMLLib() as lib:
+        fn = lib.get_function_pointer("nvmlErrorString")
+        fn.restype = c_char_p  # otherwise return is an int
+        ret = fn(result)
+        return ret
 
 
 class NVMLError(Exception):
@@ -104,7 +122,7 @@ class NVMLErrorUninitialized(NVMLError):
         super().__init__(Return.ERROR_UNINITIALIZED.value)
 
 
-class NVMLErrorUninitializedInvalidArgument(NVMLError):
+class NVMLErrorInvalidArgument(NVMLError):
     def __init__(self):
         super().__init__(Return.ERROR_INVALID_ARGUMENT.value)
 

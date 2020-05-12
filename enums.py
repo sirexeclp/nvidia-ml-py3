@@ -6,12 +6,14 @@ class MetaEnum(EnumMeta):
     def __contains__(cls, item):
         return cls.has_value(item)
 
+    c_type = c_uint
+
 
 class UIntEnum(Enum, metaclass=MetaEnum):
-    @property
-    def C_TYPE(self):
-        """ Must be a Property, because Enum Subclasses can't define members."""
-        return c_uint
+    # @staticmethod
+    # def c_type():
+    #     """ Must be a Property, because Enum Subclasses can't define members."""
+    #     return c_uint
 
     @classmethod
     def has_value(cls, value):
@@ -109,7 +111,7 @@ class PowerState(UIntEnum):
     P_UNKNOWN = 32
 
 
-class InforomObject(UIntEnum):
+class InfoRom(UIntEnum):
     OEM = 0
     ECC = 1
     POWER = 2
