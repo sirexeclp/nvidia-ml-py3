@@ -38,18 +38,25 @@ import string
 
 ## C Type mappings ##
 ## Enums
-_nvmlEnableState_t = c_uint
-NVML_FEATURE_DISABLED = 0
-NVML_FEATURE_ENABLED = 1
+from enum import Enum
+
+
+class UIntEnum(Enum):
+    C_TYPE = c_uint
+
+class EnableState(UIntEnum):
+    FEATURE_DISABLED = 0
+    FEATURE_ENABLED = 1
 
 _nvmlBrandType_t = c_uint
-NVML_BRAND_UNKNOWN = 0
-NVML_BRAND_QUADRO = 1
-NVML_BRAND_TESLA = 2
-NVML_BRAND_NVS = 3
-NVML_BRAND_GRID = 4
-NVML_BRAND_GEFORCE = 5
-NVML_BRAND_COUNT = 6
+class Brand(UIntEnum):
+    NVML_BRAND_UNKNOWN = 0
+    NVML_BRAND_QUADRO = 1
+    NVML_BRAND_TESLA = 2
+    NVML_BRAND_NVS = 3
+    NVML_BRAND_GRID = 4
+    NVML_BRAND_GEFORCE = 5
+    NVML_BRAND_COUNT = 6
 
 _nvmlTemperatureThresholds_t = c_uint
 NVML_TEMPERATURE_THRESHOLD_SHUTDOWN = 0
@@ -1025,7 +1032,7 @@ def nvmlDeviceValidateInforom(handle):
 
 
 def nvmlDeviceGetDisplayMode(handle):
-    c_mode = _nvmlEnableState_t()
+    c_mode = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetDisplayMode")
     ret = fn(handle, byref(c_mode))
     _nvmlCheckReturn(ret)
@@ -1033,7 +1040,7 @@ def nvmlDeviceGetDisplayMode(handle):
 
 
 def nvmlDeviceGetDisplayActive(handle):
-    c_mode = _nvmlEnableState_t()
+    c_mode = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetDisplayActive")
     ret = fn(handle, byref(c_mode))
     _nvmlCheckReturn(ret)
@@ -1041,7 +1048,7 @@ def nvmlDeviceGetDisplayActive(handle):
 
 
 def nvmlDeviceGetPersistenceMode(handle):
-    c_state = _nvmlEnableState_t()
+    c_state = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetPersistenceMode")
     ret = fn(handle, byref(c_state))
     _nvmlCheckReturn(ret)
@@ -1191,7 +1198,7 @@ def nvmlDeviceGetPerformanceState(handle):
 
 
 def nvmlDeviceGetPowerManagementMode(handle):
-    c_pcapMode = _nvmlEnableState_t()
+    c_pcapMode = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetPowerManagementMode")
     ret = fn(handle, byref(c_pcapMode))
     _nvmlCheckReturn(ret)
@@ -1287,8 +1294,8 @@ def nvmlDeviceGetComputeMode(handle):
 
 
 def nvmlDeviceGetEccMode(handle):
-    c_currState = _nvmlEnableState_t()
-    c_pendingState = _nvmlEnableState_t()
+    c_currState = EnableState.C_TYPE()
+    c_pendingState = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetEccMode")
     ret = fn(handle, byref(c_currState), byref(c_pendingState))
     _nvmlCheckReturn(ret)
@@ -1471,8 +1478,8 @@ def nvmlDeviceGetGraphicsRunningProcesses(handle):
 
 
 def nvmlDeviceGetAutoBoostedClocksEnabled(handle):
-    c_isEnabled = _nvmlEnableState_t()
-    c_defaultIsEnabled = _nvmlEnableState_t()
+    c_isEnabled = EnableState.C_TYPE()
+    c_defaultIsEnabled = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetAutoBoostedClocksEnabled")
     ret = fn(handle, byref(c_isEnabled), byref(c_defaultIsEnabled))
     _nvmlCheckReturn(ret)
@@ -1490,7 +1497,7 @@ def nvmlUnitSetLedState(unit, color):
 
 def nvmlDeviceSetPersistenceMode(handle, mode):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetPersistenceMode")
-    ret = fn(handle, _nvmlEnableState_t(mode))
+    ret = fn(handle, EnableState.C_TYPE(mode))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1504,7 +1511,7 @@ def nvmlDeviceSetComputeMode(handle, mode):
 
 def nvmlDeviceSetEccMode(handle, mode):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetEccMode")
-    ret = fn(handle, _nvmlEnableState_t(mode))
+    ret = fn(handle, EnableState.C_TYPE(mode))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1525,7 +1532,7 @@ def nvmlDeviceSetDriverModel(handle, model):
 
 def nvmlDeviceSetAutoBoostedClocksEnabled(handle, enabled):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetAutoBoostedClocksEnabled")
-    ret = fn(handle, _nvmlEnableState_t(enabled))
+    ret = fn(handle, EnableState.C_TYPE(enabled))
     _nvmlCheckReturn(ret)
     return None
     # Throws NVML_ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
@@ -1533,7 +1540,7 @@ def nvmlDeviceSetAutoBoostedClocksEnabled(handle, enabled):
 
 def nvmlDeviceSetDefaultAutoBoostedClocksEnabled(handle, enabled, flags):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetDefaultAutoBoostedClocksEnabled")
-    ret = fn(handle, _nvmlEnableState_t(enabled), c_uint(flags))
+    ret = fn(handle, EnableState.C_TYPE(enabled), c_uint(flags))
     _nvmlCheckReturn(ret)
     return None
     # Throws NVML_ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
@@ -1689,7 +1696,7 @@ def nvmlDeviceGetIndex(handle):
 
 # Added in 5.319
 def nvmlDeviceGetAccountingMode(handle):
-    c_mode = _nvmlEnableState_t()
+    c_mode = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetAccountingMode")
     ret = fn(handle, byref(c_mode))
     _nvmlCheckReturn(ret)
@@ -1698,7 +1705,7 @@ def nvmlDeviceGetAccountingMode(handle):
 
 def nvmlDeviceSetAccountingMode(handle, mode):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetAccountingMode")
-    ret = fn(handle, _nvmlEnableState_t(mode))
+    ret = fn(handle, EnableState.C_TYPE(mode))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1763,7 +1770,7 @@ def nvmlDeviceGetRetiredPages(device, sourceFilter):
 
 
 def nvmlDeviceGetRetiredPagesPendingStatus(device):
-    c_pending = _nvmlEnableState_t()
+    c_pending = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetRetiredPagesPendingStatus")
     ret = fn(device, byref(c_pending))
     _nvmlCheckReturn(ret)
@@ -1771,7 +1778,7 @@ def nvmlDeviceGetRetiredPagesPendingStatus(device):
 
 
 def nvmlDeviceGetAPIRestriction(device, apiType):
-    c_permission = _nvmlEnableState_t()
+    c_permission = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetAPIRestriction")
     ret = fn(device, _nvmlRestrictedAPI_t(apiType), byref(c_permission))
     _nvmlCheckReturn(ret)
@@ -1780,7 +1787,7 @@ def nvmlDeviceGetAPIRestriction(device, apiType):
 
 def nvmlDeviceSetAPIRestriction(handle, apiType, isRestricted):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetAPIRestriction")
-    ret = fn(handle, _nvmlRestrictedAPI_t(apiType), _nvmlEnableState_t(isRestricted))
+    ret = fn(handle, _nvmlRestrictedAPI_t(apiType), EnableState.C_TYPE(isRestricted))
     _nvmlCheckReturn(ret)
     return None
 
