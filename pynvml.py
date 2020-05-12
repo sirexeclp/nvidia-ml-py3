@@ -33,116 +33,20 @@ from ctypes import *
 import sys
 import os
 import threading
-import string
+from pathlib import Path
 
 from constants import *
 from enums import *
+from errors import *
 from structs import *
 from flags import *
 
 
-## Error Checking ##
-
-class NVMLErrorUninitialized(NVMLError):
-    value = Return.ERROR_UNINITIALIZED
-
-
-class NVMLError(Exception):
-    _valClassMapping = dict()
-    # List of currently known error codes
-    _errcode_to_string = {
-        ERROR_UNINITIALIZED: "Uninitialized",
-        ERROR_INVALID_ARGUMENT: "Invalid Argument",
-        ERROR_NOT_SUPPORTED: "Not Supported",
-        ERROR_NO_PERMISSION: "Insufficient Permissions",
-        ERROR_ALREADY_INITIALIZED: "Already Initialized",
-        ERROR_NOT_FOUND: "Not Found",
-        ERROR_INSUFFICIENT_SIZE: "Insufficient Size",
-        ERROR_INSUFFICIENT_POWER: "Insufficient External Power",
-        ERROR_DRIVER_NOT_LOADED: "Driver Not Loaded",
-        ERROR_TIMEOUT: "Timeout",
-        ERROR_IRQ_ISSUE: "Interrupt Request Issue",
-        ERROR_LIBRARY_NOT_FOUND: "NVML Shared Library Not Found",
-        ERROR_FUNCTION_NOT_FOUND: "Function Not Found",
-        ERROR_CORRUPTED_INFOROM: "Corrupted infoROM",
-        ERROR_GPU_IS_LOST: "GPU is lost",
-        ERROR_RESET_REQUIRED: "GPU requires restart",
-        ERROR_OPERATING_SYSTEM: "The operating system has blocked the request.",
-        ERROR_LIB_RM_VERSION_MISMATCH: "RM has detected an NVML/RM version mismatch.",
-        ERROR_UNKNOWN: "Unknown Error",
-    }
-
-    def __new__(typ, value):
-        '''
-        Maps value to a proper subclass of NVMLError.
-        See _extractNVMLErrorsAsClasses function for more details
-        '''
-        if typ == NVMLError:
-            typ = NVMLError._valClassMapping.get(value, typ)
-        obj = Exception.__new__(typ)
-        obj.value = value
-        return obj
-
-    def __str__(self):
-        try:
-            if self.value not in NVMLError._errcode_to_string:
-                NVMLError._errcode_to_string[self.value] = str(
-                    nvmlErrorString(self.value))
-            return NVMLError._errcode_to_string[self.value]
-        except NVMLError_Uninitialized:
-            return "NVML Error with code %d" % self.value
-
-    def __eq__(self, other):
-        return self.value == other.value
-
-
-def _extractNVMLErrorsAsClasses():
-    """
-    Generates a hierarchy of classes on top of NVMLError class.
-
-    Each NVML Error gets a new NVMLError subclass. This way try,except blocks can filter appropriate
-    exceptions more easily.
-
-    NVMLError is a parent class. Each     ERROR_* gets it's own subclass.
-    e.g.     ERROR_ALREADY_INITIALIZED will be turned into NVMLError_AlreadyInitialized
-    """
-    this_module = sys.modules[__name__]
-    nvmlErrorsNames = filter(
-        lambda x: x.startswith("    ERROR_"),
-        dir(this_module))
-    for err_name in nvmlErrorsNames:
-        # e.g. Turn     ERROR_ALREADY_INITIALIZED into
-        # NVMLError_AlreadyInitialized
-        class_name = "NVMLError_" + \
-                     string.capwords(err_name.replace("    ERROR_", ""), "_").replace("_", "")
-        err_val = getattr(this_module, err_name)
-
-        def gen_new(val):
-            def new(typ):
-                obj = NVMLError.__new__(typ, val)
-                return obj
-
-            return new
-
-        new_error_class = type(
-            class_name, (NVMLError,), {
-                '__new__': gen_new(err_val)})
-        new_error_class.__module__ = __name__
-        setattr(this_module, class_name, new_error_class)
-        NVMLError._valClassMapping[err_val] = new_error_class
-
-
-_extractNVMLErrorsAsClasses()
-
-
 def _nvmlCheckReturn(ret):
     if ret != Return.SUCCESS.value:
-        raise NVMLError(ret)
+        raise NVMLError.from_return(ret)
     return ret
 
-
-## Function access ##
-# function pointers are cached to prevent unnecessary libLoadLock locking
 
 class NVMLLib:
     lock = threading.Lock()
@@ -151,10 +55,9 @@ class NVMLLib:
     def __init__(self):
         self.function_pointer_cache = {}
         self.nvml_lib = None
-
-    def __enter__(self):
         self._load_nvml_library()
 
+    def __enter__(self):
         # Initialize the library
         fn = self._get_function_pointer("nvmlInit_v2")
         ret = fn()
@@ -188,17 +91,13 @@ class NVMLLib:
         with self.lock:
             try:
                 if sys.platform[:3] == "win":
-                    searchPaths = [
-                        os.path.join(os.getenv("ProgramFiles", r"C:\Program Files"),
-                                     r"NVIDIA Corporation\NVSMI\nvml.dll"),
-                        os.path.join(os.getenv("WinDir", r"C:\Windows"), r"System32\nvml.dll")]
-                    nvmlPath = next(
-                        (x for x in searchPaths if os.path.isfile(x)), None)
-                    if nvmlPath is None:
+                    search_paths = self._get_search_paths()
+                    nvml_path = next((x for x in search_paths if x.is_file()), None)
+                    if nvml_path is None:
                         _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
                     else:
                         # cdecl calling convention
-                        self.nvml_lib = CDLL(nvmlPath)
+                        self.nvml_lib = CDLL(str(nvml_path))
                 else:
                     # assume linux
                     self.nvml_lib = CDLL("libnvidia-ml.so.1")
@@ -207,14 +106,19 @@ class NVMLLib:
             if self.nvml_lib is None:
                 _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
 
+    @staticmethod
+    def _get_search_paths(self):
+        program_files = Path(os.getenv("ProgramFiles", r"C:\Program Files"))
+        win_dir = Path(os.getenv("WinDir", r"C:\Windows"))
+        paths = [program_files / r"NVIDIA Corporation\NVSMI\nvml.dll",
+                 win_dir / r"System32\nvml.dll"]
+        return paths
+
     def _get_function_pointer(self, name):
         if name in self.function_pointer_cache:
             return self.function_pointer_cache[name]
 
         with self.lock:
-            # ensure library was loaded
-            if nvmlLib is None:
-                raise NVMLError(ERROR_UNINITIALIZED)
             try:
                 self.function_pointer_cache[name] = getattr(nvmlLib, name)
                 return self.function_pointer_cache[name]
@@ -254,66 +158,6 @@ def nvmlFriendlyObjectToStruct(obj, model):
     return model
 
 
-# Unit structures
-class strut_cUnit(Structure):
-    pass  # opaque handle
-
-
-Unit_t = POINTER(struct_c_nvmlUnit)
-
-
-class _PrintableStructure(Structure):
-    """
-    Abstract class that produces nicer __str__ output than ctypes.Structure.
-    e.g. instead of:
-      >>> print str(obj)
-      <class_name object at 0x7fdf82fef9e0>
-    this class will print
-      class_name(field_name: formatted_value, field_name: formatted_value)
-
-    _fmt_ dictionary of <str _field_ name> -> <str format>
-    e.g. class that has _field_ 'hex_value', c_uint could be formatted with
-      _fmt_ = {"hex_value" : "%08X"}
-    to produce nicer output.
-    Default fomratting string for all fields can be set with key "<default>" like:
-      _fmt_ = {"<default>" : "%d MHz"} # e.g all values are numbers in MHz.
-    If not set it's assumed to be just "%s"
-
-    Exact format of returned str from this class is subject to change in the future.
-    """
-    _fmt_ = {}
-
-    def __str__(self):
-        result = []
-        for x in self._fields_:
-            key = x[0]
-            value = getattr(self, key)
-            fmt = "%s"
-            if key in self._fmt_:
-                fmt = self._fmt_[key]
-            elif "<default>" in self._fmt_:
-                fmt = self._fmt_["<default>"]
-            result.append(("%s: " + fmt) % (key, value))
-        return self.__class__.__name__ + "(" + string.join(result, ", ") + ")"
-
-
-# Device structures
-class struct_c_nvmlDevice(Structure):
-    pass  # opaque handle
-
-
-Device_t = POINTER(struct_c_nvmlDevice)
-
-
-class BAR1Memory(_PrintableStructure):
-    _fields_ = [
-        ('bar1Total', c_ulonglong),
-        ('bar1Free', c_ulonglong),
-        ('bar1Used', c_ulonglong),
-    ]
-    _fmt_ = {'<default>': "%d B"}
-
-
 # On Windows with the WDDM driver, usedGpuMemory is reported as None
 # Code that processes this structure should check for None, I.E.
 #
@@ -324,99 +168,6 @@ class BAR1Memory(_PrintableStructure):
 #    print("Using %d MiB of memory" % (info.usedGpuMemory / 1024 / 1024))
 #
 # See NVML documentation for more information
-
-
-# Added in 2.285
-
-
-# Event structures
-class StructCNvmlEventSetT(Structure):
-    pass  # opaque handle
-
-
-# Clock Throttle Reasons defines
-
-
-## C function wrappers ##
-def nvmlInit():
-    _LoadNvmlLibrary()
-
-    #
-    # Initialize the library
-    #
-    fn = _nvmlGetFunctionPointer("nvmlInit_v2")
-    ret = fn()
-    _nvmlCheckReturn(ret)
-
-    # Atomically update refcount
-    global _nvmlLib_refcount
-    libLoadLock.acquire()
-    _nvmlLib_refcount += 1
-    libLoadLock.release()
-    return None
-
-
-def _LoadNvmlLibrary():
-    '''
-    Load the library if it isn't loaded already
-    '''
-    global nvmlLib
-
-    if nvmlLib is None:
-        # lock to ensure only one caller loads the library
-        libLoadLock.acquire()
-
-        try:
-            # ensure the library still isn't loaded
-            if nvmlLib is None:
-                try:
-                    if sys.platform[:3] == "win":
-                        searchPaths = [
-                            os.path.join(
-                                os.getenv(
-                                    "ProgramFiles",
-                                    r"C:\Program Files"),
-                                r"NVIDIA Corporation\NVSMI\nvml.dll"),
-                            os.path.join(
-                                os.getenv(
-                                    "WinDir",
-                                    r"C:\Windows"),
-                                r"System32\nvml.dll"),
-                        ]
-                        nvmlPath = next(
-                            (x for x in searchPaths if os.path.isfile(x)), None)
-                        if nvmlPath is None:
-                            _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
-                        else:
-                            # cdecl calling convention
-                            nvmlLib = CDLL(nvmlPath)
-                    else:
-                        # assume linux
-                        nvmlLib = CDLL("libnvidia-ml.so.1")
-                except OSError as ose:
-                    _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
-                if (nvmlLib is None):
-                    _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
-        finally:
-            # lock is always freed
-            libLoadLock.release()
-
-
-def nvmlShutdown():
-    #
-    # Leave the library loaded, but shutdown the interface
-    #
-    fn = _nvmlGetFunctionPointer("nvmlShutdown")
-    ret = fn()
-    _nvmlCheckReturn(ret)
-
-    # Atomically update refcount
-    global _nvmlLib_refcount
-    libLoadLock.acquire()
-    if (0 < _nvmlLib_refcount):
-        _nvmlLib_refcount -= 1
-    libLoadLock.release()
-    return None
 
 
 # Added in 2.285
@@ -489,7 +240,7 @@ def nvmlUnitGetCount():
 
 def nvmlUnitGetHandleByIndex(index):
     c_index = c_uint(index)
-    unit = Unit()
+    unit = UnitPointer()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetHandleByIndex")
     ret = fn(c_index, byref(unit))
     _nvmlCheckReturn(ret)
@@ -569,7 +320,7 @@ def nvmlDeviceGetCount():
 
 def nvmlDeviceGetHandleByIndex(index):
     c_index = c_uint(index)
-    devie = cDevice()
+    device = cDevice()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetHandleByIndex_v2")
     ret = fn(c_index, byref(device))
     _nvmlCheckReturn(ret)

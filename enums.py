@@ -1,9 +1,26 @@
 from ctypes import c_uint
-from enum import Enum
+from enum import Enum, EnumMeta
 
 
-class UIntEnum(Enum):
-    C_TYPE = c_uint
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item):
+        return cls.has_value(item)
+
+
+class UIntEnum(Enum, metaclass=MetaEnum):
+    @property
+    def C_TYPE(self):
+        """ Must be a Property, because Enum Subclasses can't define members."""
+        return c_uint
+
+    @classmethod
+    def has_value(cls, value):
+        try:
+            cls(value)
+        except ValueError as e:
+            return False
+        else:
+            return True
 
 
 class EnableState(UIntEnum):
@@ -98,29 +115,6 @@ class InforomObject(UIntEnum):
     POWER = 2
 
 
-class Return(UIntEnum):
-    SUCCESS = 0
-    ERROR_UNINITIALIZED = 1
-    ERROR_INVALID_ARGUMENT = 2
-    ERROR_NOT_SUPPORTED = 3
-    ERROR_NO_PERMISSION = 4
-    ERROR_ALREADY_INITIALIZED = 5
-    ERROR_NOT_FOUND = 6
-    ERROR_INSUFFICIENT_SIZE = 7
-    ERROR_INSUFFICIENT_POWER = 8
-    ERROR_DRIVER_NOT_LOADED = 9
-    ERROR_TIMEOUT = 10
-    ERROR_IRQ_ISSUE = 11
-    ERROR_LIBRARY_NOT_FOUND = 12
-    ERROR_FUNCTION_NOT_FOUND = 13
-    ERROR_CORRUPTED_INFOROM = 14
-    ERROR_GPU_IS_LOST = 15
-    ERROR_RESET_REQUIRED = 16
-    ERROR_OPERATING_SYSTEM = 17
-    ERROR_LIB_RM_VERSION_MISMATCH = 18
-    ERROR_UNKNOWN = 999
-
-
 class FanState(UIntEnum):
     NORMAL = 0
     FAILED = 1
@@ -168,7 +162,7 @@ class ValueType(UIntEnum):
     UNSIGNED_LONG = 2
     UNSIGNED_LONG_LONG = 3
 
-    def extract_value(self, union: Sample):
+    def extract_value(self, union):
         sample_value = union.sampleValue
         mapping = {
             ValueType.DOUBLE: sample_value.dVal,
