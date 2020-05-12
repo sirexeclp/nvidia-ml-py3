@@ -38,202 +38,227 @@ import string
 
 ## C Type mappings ##
 ## Enums
-from enum import Enum
+from enum import Enum, IntFlag
 
 
 class UIntEnum(Enum):
     C_TYPE = c_uint
 
+
 class EnableState(UIntEnum):
     FEATURE_DISABLED = 0
     FEATURE_ENABLED = 1
 
-_nvmlBrandType_t = c_uint
-class Brand(UIntEnum):
-    NVML_BRAND_UNKNOWN = 0
-    NVML_BRAND_QUADRO = 1
-    NVML_BRAND_TESLA = 2
-    NVML_BRAND_NVS = 3
-    NVML_BRAND_GRID = 4
-    NVML_BRAND_GEFORCE = 5
-    NVML_BRAND_COUNT = 6
 
-_nvmlTemperatureThresholds_t = c_uint
-NVML_TEMPERATURE_THRESHOLD_SHUTDOWN = 0
-NVML_TEMPERATURE_THRESHOLD_SLOWDOWN = 1
-NVML_TEMPERATURE_THRESHOLD_COUNT = 1
+class BrandType(UIntEnum):
+    BRAND_UNKNOWN = 0
+    BRAND_QUADRO = 1
+    BRAND_TESLA = 2
+    BRAND_NVS = 3
+    BRAND_GRID = 4
+    BRAND_GEFORCE = 5
+    BRAND_COUNT = 6
 
-_nvmlTemperatureSensors_t = c_uint
-NVML_TEMPERATURE_GPU = 0
-NVML_TEMPERATURE_COUNT = 1
 
-_nvmlComputeMode_t = c_uint
-NVML_COMPUTEMODE_DEFAULT = 0
-NVML_COMPUTEMODE_EXCLUSIVE_THREAD = 1
-NVML_COMPUTEMODE_PROHIBITED = 2
-NVML_COMPUTEMODE_EXCLUSIVE_PROCESS = 3
-NVML_COMPUTEMODE_COUNT = 4
+class TemperatureThresholds(UIntEnum):
+    TEMPERATURE_THRESHOLD_SHUTDOWN = 0
+    TEMPERATURE_THRESHOLD_SLOWDOWN = 1
+    TEMPERATURE_THRESHOLD_COUNT = 1
 
-_nvmlMemoryLocation_t = c_uint
-NVML_MEMORY_LOCATION_L1_CACHE = 0
-NVML_MEMORY_LOCATION_L2_CACHE = 1
-NVML_MEMORY_LOCATION_DEVICE_MEMORY = 2
-NVML_MEMORY_LOCATION_REGISTER_FILE = 3
-NVML_MEMORY_LOCATION_TEXTURE_MEMORY = 4
-NVML_MEMORY_LOCATION_COUNT = 5
 
-# These are deprecated, instead use _nvmlMemoryErrorType_t
-_nvmlEccBitType_t = c_uint
-NVML_SINGLE_BIT_ECC = 0
-NVML_DOUBLE_BIT_ECC = 1
-NVML_ECC_ERROR_TYPE_COUNT = 2
+class TemperatureSensors(UIntEnum):
+    TEMPERATURE_GPU = 0
+    TEMPERATURE_COUNT = 1
 
-_nvmlEccCounterType_t = c_uint
-NVML_VOLATILE_ECC = 0
-NVML_AGGREGATE_ECC = 1
-NVML_ECC_COUNTER_TYPE_COUNT = 2
 
-_nvmlMemoryErrorType_t = c_uint
-NVML_MEMORY_ERROR_TYPE_CORRECTED = 0
-NVML_MEMORY_ERROR_TYPE_UNCORRECTED = 1
-NVML_MEMORY_ERROR_TYPE_COUNT = 2
+class ComputeMode(UIntEnum):
+    COMPUTEMODE_DEFAULT = 0
+    COMPUTEMODE_EXCLUSIVE_THREAD = 1
+    COMPUTEMODE_PROHIBITED = 2
+    COMPUTEMODE_EXCLUSIVE_PROCESS = 3
+    COMPUTEMODE_COUNT = 4
 
-_nvmlClockType_t = c_uint
-NVML_CLOCK_GRAPHICS = 0
-NVML_CLOCK_SM = 1
-NVML_CLOCK_MEM = 2
-NVML_CLOCK_COUNT = 3
 
-_nvmlDriverModel_t = c_uint
-NVML_DRIVER_WDDM = 0
-NVML_DRIVER_WDM = 1
+class MemoryLocation(UIntEnum):
+    MEMORY_LOCATION_L1_CACHE = 0
+    MEMORY_LOCATION_L2_CACHE = 1
+    MEMORY_LOCATION_DEVICE_MEMORY = 2
+    MEMORY_LOCATION_REGISTER_FILE = 3
+    MEMORY_LOCATION_TEXTURE_MEMORY = 4
+    MEMORY_LOCATION_COUNT = 5
 
-_nvmlPstates_t = c_uint
-NVML_PSTATE_0 = 0
-NVML_PSTATE_1 = 1
-NVML_PSTATE_2 = 2
-NVML_PSTATE_3 = 3
-NVML_PSTATE_4 = 4
-NVML_PSTATE_5 = 5
-NVML_PSTATE_6 = 6
-NVML_PSTATE_7 = 7
-NVML_PSTATE_8 = 8
-NVML_PSTATE_9 = 9
-NVML_PSTATE_10 = 10
-NVML_PSTATE_11 = 11
-NVML_PSTATE_12 = 12
-NVML_PSTATE_13 = 13
-NVML_PSTATE_14 = 14
-NVML_PSTATE_15 = 15
-NVML_PSTATE_UNKNOWN = 32
 
-_nvmlInforomObject_t = c_uint
-NVML_INFOROM_OEM = 0
-NVML_INFOROM_ECC = 1
-NVML_INFOROM_POWER = 2
-NVML_INFOROM_COUNT = 3
+# These are deprecated, instead use MemoryErrorType.C_TYPE
+class EccBitType(UIntEnum):
+    SINGLE_BIT_ECC = 0
+    DOUBLE_BIT_ECC = 1
+    ECC_ERROR_TYPE_COUNT = 2
 
-_nvmlReturn_t = c_uint
-NVML_SUCCESS = 0
-NVML_ERROR_UNINITIALIZED = 1
-NVML_ERROR_INVALID_ARGUMENT = 2
-NVML_ERROR_NOT_SUPPORTED = 3
-NVML_ERROR_NO_PERMISSION = 4
-NVML_ERROR_ALREADY_INITIALIZED = 5
-NVML_ERROR_NOT_FOUND = 6
-NVML_ERROR_INSUFFICIENT_SIZE = 7
-NVML_ERROR_INSUFFICIENT_POWER = 8
-NVML_ERROR_DRIVER_NOT_LOADED = 9
-NVML_ERROR_TIMEOUT = 10
-NVML_ERROR_IRQ_ISSUE = 11
-NVML_ERROR_LIBRARY_NOT_FOUND = 12
-NVML_ERROR_FUNCTION_NOT_FOUND = 13
-NVML_ERROR_CORRUPTED_INFOROM = 14
-NVML_ERROR_GPU_IS_LOST = 15
-NVML_ERROR_RESET_REQUIRED = 16
-NVML_ERROR_OPERATING_SYSTEM = 17
-NVML_ERROR_LIB_RM_VERSION_MISMATCH = 18
-NVML_ERROR_UNKNOWN = 999
 
-_nvmlFanState_t = c_uint
-NVML_FAN_NORMAL = 0
-NVML_FAN_FAILED = 1
+class EccCounterType(UIntEnum):
+    VOLATILE_ECC = 0
+    AGGREGATE_ECC = 1
+    ECC_COUNTER_TYPE_COUNT = 2
 
-_nvmlLedColor_t = c_uint
-NVML_LED_COLOR_GREEN = 0
-NVML_LED_COLOR_AMBER = 1
 
-_nvmlGpuOperationMode_t = c_uint
-NVML_GOM_ALL_ON = 0
-NVML_GOM_COMPUTE = 1
-NVML_GOM_LOW_DP = 2
+class MemoryErrorType(UIntEnum):
+    MEMORY_ERROR_TYPE_CORRECTED = 0
+    MEMORY_ERROR_TYPE_UNCORRECTED = 1
+    MEMORY_ERROR_TYPE_COUNT = 2
 
-_nvmlPageRetirementCause_t = c_uint
-NVML_PAGE_RETIREMENT_CAUSE_DOUBLE_BIT_ECC_ERROR = 0
-NVML_PAGE_RETIREMENT_CAUSE_MULTIPLE_SINGLE_BIT_ECC_ERRORS = 1
-NVML_PAGE_RETIREMENT_CAUSE_COUNT = 2
 
-_nvmlRestrictedAPI_t = c_uint
-NVML_RESTRICTED_API_SET_APPLICATION_CLOCKS = 0
-NVML_RESTRICTED_API_SET_AUTO_BOOSTED_CLOCKS = 1
-NVML_RESTRICTED_API_COUNT = 2
+class ClockType(UIntEnum):
+    CLOCK_GRAPHICS = 0
+    CLOCK_SM = 1
+    CLOCK_MEM = 2
+    CLOCK_COUNT = 3
 
-_nvmlBridgeChipType_t = c_uint
-NVML_BRIDGE_CHIP_PLX = 0
-NVML_BRIDGE_CHIP_BRO4 = 1
-NVML_MAX_PHYSICAL_BRIDGE = 128
 
-_nvmlValueType_t = c_uint
-NVML_VALUE_TYPE_DOUBLE = 0
-NVML_VALUE_TYPE_UNSIGNED_INT = 1
-NVML_VALUE_TYPE_UNSIGNED_LONG = 2
-NVML_VALUE_TYPE_UNSIGNED_LONG_LONG = 3
-NVML_VALUE_TYPE_COUNT = 4
+class DriverModel(UIntEnum):
+    DRIVER_WDDM = 0
+    DRIVER_WDM = 1
 
-_nvmlPerfPolicyType_t = c_uint
-NVML_PERF_POLICY_POWER = 0
-NVML_PERF_POLICY_THERMAL = 1
-NVML_PERF_POLICY_COUNT = 2
 
-_nvmlSamplingType_t = c_uint
-NVML_TOTAL_POWER_SAMPLES = 0
-NVML_GPU_UTILIZATION_SAMPLES = 1
-NVML_MEMORY_UTILIZATION_SAMPLES = 2
-NVML_ENC_UTILIZATION_SAMPLES = 3
-NVML_DEC_UTILIZATION_SAMPLES = 4
-NVML_PROCESSOR_CLK_SAMPLES = 5
-NVML_MEMORY_CLK_SAMPLES = 6
-NVML_SAMPLINGTYPE_COUNT = 7
+class Pstates(UIntEnum):
+    PSTATE_0 = 0
+    PSTATE_1 = 1
+    PSTATE_2 = 2
+    PSTATE_3 = 3
+    PSTATE_4 = 4
+    PSTATE_5 = 5
+    PSTATE_6 = 6
+    PSTATE_7 = 7
+    PSTATE_8 = 8
+    PSTATE_9 = 9
+    PSTATE_10 = 10
+    PSTATE_11 = 11
+    PSTATE_12 = 12
+    PSTATE_13 = 13
+    PSTATE_14 = 14
+    PSTATE_15 = 15
+    PSTATE_UNKNOWN = 32
 
-_nvmlPcieUtilCounter_t = c_uint
-NVML_PCIE_UTIL_TX_BYTES = 0
-NVML_PCIE_UTIL_RX_BYTES = 1
-NVML_PCIE_UTIL_COUNT = 2
 
-_nvmlGpuTopologyLevel_t = c_uint
-NVML_TOPOLOGY_INTERNAL = 0
-NVML_TOPOLOGY_SINGLE = 10
-NVML_TOPOLOGY_MULTIPLE = 20
-NVML_TOPOLOGY_HOSTBRIDGE = 30
-NVML_TOPOLOGY_CPU = 40
-NVML_TOPOLOGY_SYSTEM = 50
+class InforomObject(UIntEnum):
+    INFOROM_OEM = 0
+    INFOROM_ECC = 1
+    INFOROM_POWER = 2
+    INFOROM_COUNT = 3
+
+
+class Return(UIntEnum):
+    SUCCESS = 0
+    ERROR_UNINITIALIZED = 1
+    ERROR_INVALID_ARGUMENT = 2
+    ERROR_NOT_SUPPORTED = 3
+    ERROR_NO_PERMISSION = 4
+    ERROR_ALREADY_INITIALIZED = 5
+    ERROR_NOT_FOUND = 6
+    ERROR_INSUFFICIENT_SIZE = 7
+    ERROR_INSUFFICIENT_POWER = 8
+    ERROR_DRIVER_NOT_LOADED = 9
+    ERROR_TIMEOUT = 10
+    ERROR_IRQ_ISSUE = 11
+    ERROR_LIBRARY_NOT_FOUND = 12
+    ERROR_FUNCTION_NOT_FOUND = 13
+    ERROR_CORRUPTED_INFOROM = 14
+    ERROR_GPU_IS_LOST = 15
+    ERROR_RESET_REQUIRED = 16
+    ERROR_OPERATING_SYSTEM = 17
+    ERROR_LIB_RM_VERSION_MISMATCH = 18
+    ERROR_UNKNOWN = 999
+
+
+class FanState(UIntEnum):
+    FAN_NORMAL = 0
+    FAN_FAILED = 1
+
+
+class LedColor(UIntEnum):
+    LED_COLOR_GREEN = 0
+    LED_COLOR_AMBER = 1
+
+
+class GpuOperationMode(UIntEnum):
+    GOM_ALL_ON = 0
+    GOM_COMPUTE = 1
+    GOM_LOW_DP = 2
+
+
+class PageRetirementCause(UIntEnum):
+    PAGE_RETIREMENT_CAUSE_DOUBLE_BIT_ECC_ERROR = 0
+    PAGE_RETIREMENT_CAUSE_MULTIPLE_SINGLE_BIT_ECC_ERRORS = 1
+    PAGE_RETIREMENT_CAUSE_COUNT = 2
+
+
+class RestrictedAPI(UIntEnum):
+    RESTRICTED_API_SET_APPLICATION_CLOCKS = 0
+    RESTRICTED_API_SET_AUTO_BOOSTED_CLOCKS = 1
+    RESTRICTED_API_COUNT = 2
+
+
+class BridgeChipType(UIntEnum):
+    BRIDGE_CHIP_PLX = 0
+    BRIDGE_CHIP_BRO4 = 1
+    MAX_PHYSICAL_BRIDGE = 128
+
+
+class ValueType(UIntEnum):
+    VALUE_TYPE_DOUBLE = 0
+    VALUE_TYPE_UNSIGNED_INT = 1
+    VALUE_TYPE_UNSIGNED_LONG = 2
+    VALUE_TYPE_UNSIGNED_LONG_LONG = 3
+    VALUE_TYPE_COUNT = 4
+
+
+class PerfPolicyType(UIntEnum):
+    PERF_POLICY_POWER = 0
+    PERF_POLICY_THERMAL = 1
+    PERF_POLICY_COUNT = 2
+
+
+class SamplingType(UIntEnum):
+    TOTAL_POWER_SAMPLES = 0
+    GPU_UTILIZATION_SAMPLES = 1
+    MEMORY_UTILIZATION_SAMPLES = 2
+    ENC_UTILIZATION_SAMPLES = 3
+    DEC_UTILIZATION_SAMPLES = 4
+    PROCESSOR_CLK_SAMPLES = 5
+    MEMORY_CLK_SAMPLES = 6
+    SAMPLINGTYPE_COUNT = 7
+
+
+class PcieUtilCounter(UIntEnum):
+    PCIE_UTIL_TX_BYTES = 0
+    PCIE_UTIL_RX_BYTES = 1
+    PCIE_UTIL_COUNT = 2
+
+
+class GpuTopologyLevel(UIntEnum):
+    TOPOLOGY_INTERNAL = 0
+    TOPOLOGY_SINGLE = 10
+    TOPOLOGY_MULTIPLE = 20
+    TOPOLOGY_HOSTBRIDGE = 30
+    TOPOLOGY_CPU = 40
+    TOPOLOGY_SYSTEM = 50
+
 
 # C preprocessor defined values
 nvmlFlagDefault = 0
 nvmlFlagForce = 1
 
 # buffer size
-NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE = 16
-NVML_DEVICE_UUID_BUFFER_SIZE = 80
-NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE = 81
-NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE = 80
-NVML_DEVICE_NAME_BUFFER_SIZE = 64
-NVML_DEVICE_SERIAL_BUFFER_SIZE = 30
-NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE = 32
-NVML_DEVICE_PCI_BUS_ID_BUFFER_SIZE = 16
+DEVICE_INFOROM_VERSION_BUFFER_SIZE = 16
+DEVICE_UUID_BUFFER_SIZE = 80
+SYSTEM_DRIVER_VERSION_BUFFER_SIZE = 81
+SYSTEM_NVML_VERSION_BUFFER_SIZE = 80
+DEVICE_NAME_BUFFER_SIZE = 64
+DEVICE_SERIAL_BUFFER_SIZE = 30
+DEVICE_VBIOS_VERSION_BUFFER_SIZE = 32
+DEVICE_PCI_BUS_ID_BUFFER_SIZE = 16
 
-NVML_VALUE_NOT_AVAILABLE_ulonglong = c_ulonglong(-1)
-NVML_VALUE_NOT_AVAILABLE_uint = c_uint(-1)
+VALUE_NOT_AVAILABLE_ulonglong = c_ulonglong(-1)
+VALUE_NOT_AVAILABLE_uint = c_uint(-1)
 
 ## Lib loading ##
 nvmlLib = None
@@ -242,29 +267,34 @@ _nvmlLib_refcount = 0  # Incremented on each nvmlInit and decremented on nvmlShu
 
 
 ## Error Checking ##
+
+class NVMLErrorUninitialized(NVMLError):
+    value = Uninitialized
+
+
 class NVMLError(Exception):
     _valClassMapping = dict()
     # List of currently known error codes
     _errcode_to_string = {
-        NVML_ERROR_UNINITIALIZED: "Uninitialized",
-        NVML_ERROR_INVALID_ARGUMENT: "Invalid Argument",
-        NVML_ERROR_NOT_SUPPORTED: "Not Supported",
-        NVML_ERROR_NO_PERMISSION: "Insufficient Permissions",
-        NVML_ERROR_ALREADY_INITIALIZED: "Already Initialized",
-        NVML_ERROR_NOT_FOUND: "Not Found",
-        NVML_ERROR_INSUFFICIENT_SIZE: "Insufficient Size",
-        NVML_ERROR_INSUFFICIENT_POWER: "Insufficient External Power",
-        NVML_ERROR_DRIVER_NOT_LOADED: "Driver Not Loaded",
-        NVML_ERROR_TIMEOUT: "Timeout",
-        NVML_ERROR_IRQ_ISSUE: "Interrupt Request Issue",
-        NVML_ERROR_LIBRARY_NOT_FOUND: "NVML Shared Library Not Found",
-        NVML_ERROR_FUNCTION_NOT_FOUND: "Function Not Found",
-        NVML_ERROR_CORRUPTED_INFOROM: "Corrupted infoROM",
-        NVML_ERROR_GPU_IS_LOST: "GPU is lost",
-        NVML_ERROR_RESET_REQUIRED: "GPU requires restart",
-        NVML_ERROR_OPERATING_SYSTEM: "The operating system has blocked the request.",
-        NVML_ERROR_LIB_RM_VERSION_MISMATCH: "RM has detected an NVML/RM version mismatch.",
-        NVML_ERROR_UNKNOWN: "Unknown Error",
+        ERROR_UNINITIALIZED: "Uninitialized",
+        ERROR_INVALID_ARGUMENT: "Invalid Argument",
+        ERROR_NOT_SUPPORTED: "Not Supported",
+        ERROR_NO_PERMISSION: "Insufficient Permissions",
+        ERROR_ALREADY_INITIALIZED: "Already Initialized",
+        ERROR_NOT_FOUND: "Not Found",
+        ERROR_INSUFFICIENT_SIZE: "Insufficient Size",
+        ERROR_INSUFFICIENT_POWER: "Insufficient External Power",
+        ERROR_DRIVER_NOT_LOADED: "Driver Not Loaded",
+        ERROR_TIMEOUT: "Timeout",
+        ERROR_IRQ_ISSUE: "Interrupt Request Issue",
+        ERROR_LIBRARY_NOT_FOUND: "NVML Shared Library Not Found",
+        ERROR_FUNCTION_NOT_FOUND: "Function Not Found",
+        ERROR_CORRUPTED_INFOROM: "Corrupted infoROM",
+        ERROR_GPU_IS_LOST: "GPU is lost",
+        ERROR_RESET_REQUIRED: "GPU requires restart",
+        ERROR_OPERATING_SYSTEM: "The operating system has blocked the request.",
+        ERROR_LIB_RM_VERSION_MISMATCH: "RM has detected an NVML/RM version mismatch.",
+        ERROR_UNKNOWN: "Unknown Error",
     }
 
     def __new__(typ, value):
@@ -297,14 +327,14 @@ def _extractNVMLErrorsAsClasses():
     Each NVML Error gets a new NVMLError subclass. This way try,except blocks can filter appropriate
     exceptions more easily.
 
-    NVMLError is a parent class. Each NVML_ERROR_* gets it's own subclass.
-    e.g. NVML_ERROR_ALREADY_INITIALIZED will be turned into NVMLError_AlreadyInitialized
+    NVMLError is a parent class. Each     ERROR_* gets it's own subclass.
+    e.g.     ERROR_ALREADY_INITIALIZED will be turned into NVMLError_AlreadyInitialized
     """
     this_module = sys.modules[__name__]
-    nvmlErrorsNames = filter(lambda x: x.startswith("NVML_ERROR_"), dir(this_module))
+    nvmlErrorsNames = filter(lambda x: x.startswith("    ERROR_"), dir(this_module))
     for err_name in nvmlErrorsNames:
-        # e.g. Turn NVML_ERROR_ALREADY_INITIALIZED into NVMLError_AlreadyInitialized
-        class_name = "NVMLError_" + string.capwords(err_name.replace("NVML_ERROR_", ""), "_").replace("_", "")
+        # e.g. Turn     ERROR_ALREADY_INITIALIZED into NVMLError_AlreadyInitialized
+        class_name = "NVMLError_" + string.capwords(err_name.replace("    ERROR_", ""), "_").replace("_", "")
         err_val = getattr(this_module, err_name)
 
         def gen_new(val):
@@ -324,7 +354,7 @@ _extractNVMLErrorsAsClasses()
 
 
 def _nvmlCheckReturn(ret):
-    if (ret != NVML_SUCCESS):
+    if ret != Return.SUCCESS.value:
         raise NVMLError(ret)
     return ret
 
@@ -342,13 +372,13 @@ def _nvmlGetFunctionPointer(name):
     libLoadLock.acquire()
     try:
         # ensure library was loaded
-        if (nvmlLib == None):
-            raise NVMLError(NVML_ERROR_UNINITIALIZED)
+        if nvmlLib is None:
+            raise NVMLError(ERROR_UNINITIALIZED)
         try:
             _nvmlGetFunctionPointer_cache[name] = getattr(nvmlLib, name)
             return _nvmlGetFunctionPointer_cache[name]
         except AttributeError:
-            raise NVMLError(NVML_ERROR_FUNCTION_NOT_FOUND)
+            raise NVMLError(ERROR_FUNCTION_NOT_FOUND)
     finally:
         # lock is always freed
         libLoadLock.release()
@@ -387,11 +417,11 @@ def nvmlFriendlyObjectToStruct(obj, model):
 
 
 ## Unit structures
-class struct_c_nvmlUnit_t(Structure):
+class struct_cUnit.C_TYPE(Structure):
     pass  # opaque handle
 
 
-c_nvmlUnit_t = POINTER(struct_c_nvmlUnit_t)
+cUnit_t = POINTER(struct_c_nvmlUnit.C_TYPE)
 
 
 class _PrintableStructure(Structure):
@@ -429,7 +459,7 @@ class _PrintableStructure(Structure):
         return self.__class__.__name__ + "(" + string.join(result, ", ") + ")"
 
 
-class c_nvmlUnitInfo_t(_PrintableStructure):
+class cUnitInfo.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('name', c_char * 96),
         ('id', c_char * 96),
@@ -438,14 +468,14 @@ class c_nvmlUnitInfo_t(_PrintableStructure):
     ]
 
 
-class c_nvmlLedState_t(_PrintableStructure):
+class cLedState.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('cause', c_char * 256),
-        ('color', _nvmlLedColor_t),
+        ('color', LedColor.C_TYPE),
     ]
 
 
-class c_nvmlPSUInfo_t(_PrintableStructure):
+class cPSUInfo.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('state', c_char * 256),
         ('current', c_uint),
@@ -454,26 +484,26 @@ class c_nvmlPSUInfo_t(_PrintableStructure):
     ]
 
 
-class c_nvmlUnitFanInfo_t(_PrintableStructure):
+class cUnitFanInfo.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('speed', c_uint),
-        ('state', _nvmlFanState_t),
+        ('state', FanState.C_TYPE),
     ]
 
 
-class c_nvmlUnitFanSpeeds_t(_PrintableStructure):
+class cUnitFanSpeeds.C_TYPE(_PrintableStructure):
     _fields_ = [
-        ('fans', c_nvmlUnitFanInfo_t * 24),
+        ('fans', cUnitFanInfo.C_TYPE * 24),
         ('count', c_uint)
     ]
 
 
 ## Device structures
-class struct_c_nvmlDevice_t(Structure):
+class struct_cDevice.C_TYPE(Structure):
     pass  # opaque handle
 
 
-c_nvmlDevice_t = POINTER(struct_c_nvmlDevice_t)
+cDevice_t = POINTER(struct_c_nvmlDevice.C_TYPE)
 
 
 class nvmlPciInfo_t(_PrintableStructure):
@@ -500,7 +530,7 @@ class nvmlPciInfo_t(_PrintableStructure):
     }
 
 
-class c_nvmlMemory_t(_PrintableStructure):
+class cMemory.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('total', c_ulonglong),
         ('free', c_ulonglong),
@@ -509,7 +539,7 @@ class c_nvmlMemory_t(_PrintableStructure):
     _fmt_ = {'<default>': "%d B"}
 
 
-class c_nvmlBAR1Memory_t(_PrintableStructure):
+class cBAR1Memory.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('bar1Total', c_ulonglong),
         ('bar1Free', c_ulonglong),
@@ -528,7 +558,7 @@ class c_nvmlBAR1Memory_t(_PrintableStructure):
 #    print("Using %d MiB of memory" % (info.usedGpuMemory / 1024 / 1024))
 #
 # See NVML documentation for more information
-class c_nvmlProcessInfo_t(_PrintableStructure):
+class cProcessInfo.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('pid', c_uint),
         ('usedGpuMemory', c_ulonglong),
@@ -536,21 +566,21 @@ class c_nvmlProcessInfo_t(_PrintableStructure):
     _fmt_ = {'usedGpuMemory': "%d B"}
 
 
-class c_nvmlBridgeChipInfo_t(_PrintableStructure):
+class cBridgeChipInfo.C_TYPE(_PrintableStructure):
     _fields_ = [
-        ('type', _nvmlBridgeChipType_t),
+        ('type', BridgeChipType.C_TYPE),
         ('fwVersion', c_uint),
     ]
 
 
-class c_nvmlBridgeChipHierarchy_t(_PrintableStructure):
+class cBridgeChipHierarchy.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('bridgeCount', c_uint),
-        ('bridgeChipInfo', c_nvmlBridgeChipInfo_t * 128),
+        ('bridgeChipInfo', cBridgeChipInfo.C_TYPE * 128),
     ]
 
 
-class c_nvmlEccErrorCounts_t(_PrintableStructure):
+class cEccErrorCounts.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('l1Cache', c_ulonglong),
         ('l2Cache', c_ulonglong),
@@ -559,7 +589,7 @@ class c_nvmlEccErrorCounts_t(_PrintableStructure):
     ]
 
 
-class c_nvmlUtilization_t(_PrintableStructure):
+class cUtilization.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('gpu', c_uint),
         ('memory', c_uint),
@@ -568,14 +598,14 @@ class c_nvmlUtilization_t(_PrintableStructure):
 
 
 # Added in 2.285
-class c_nvmlHwbcEntry_t(_PrintableStructure):
+class cHwbcEntry.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('hwbcId', c_uint),
         ('firmwareVersion', c_char * 32),
     ]
 
 
-class c_nvmlValue_t(Union):
+class cValue.C_TYPE(Union):
     _fields_ = [
         ('dVal', c_double),
         ('uiVal', c_uint),
@@ -584,14 +614,14 @@ class c_nvmlValue_t(Union):
     ]
 
 
-class c_nvmlSample_t(_PrintableStructure):
+class cSample.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('timeStamp', c_ulonglong),
-        ('sampleValue', c_nvmlValue_t),
+        ('sampleValue', cValue.C_TYPE),
     ]
 
 
-class c_nvmlViolationTime_t(_PrintableStructure):
+class cViolationTime.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('referenceTime', c_ulonglong),
         ('violationTime', c_ulonglong),
@@ -599,55 +629,55 @@ class c_nvmlViolationTime_t(_PrintableStructure):
 
 
 ## Event structures
-class struct_c_nvmlEventSet_t(Structure):
+class StructCNvmlEventSetT(Structure):
     pass  # opaque handle
 
 
-c_nvmlEventSet_t = POINTER(struct_c_nvmlEventSet_t)
+class EventType(IntFlag):
+    C_TYPE = POINTER(StructCNvmlEventSetT)
 
-nvmlEventTypeSingleBitEccError = 0x0000000000000001
-nvmlEventTypeDoubleBitEccError = 0x0000000000000002
-nvmlEventTypePState = 0x0000000000000004
-nvmlEventTypeXidCriticalError = 0x0000000000000008
-nvmlEventTypeClock = 0x0000000000000010
-nvmlEventTypeNone = 0x0000000000000000
-nvmlEventTypeAll = (
-        nvmlEventTypeNone |
-        nvmlEventTypeSingleBitEccError |
-        nvmlEventTypeDoubleBitEccError |
-        nvmlEventTypePState |
-        nvmlEventTypeClock |
-        nvmlEventTypeXidCriticalError
-)
+    NONE = 0
+    SingleBitEccError = 1
+    DoubleBitEccError = 2
+    PState = 4
+    XidCriticalError = 8
+    Clock = 16
+    All = (NONE |
+        SingleBitEccError |
+        DoubleBitEccError |
+        PState |
+        Clock |
+        XidCriticalError)
 
 ## Clock Throttle Reasons defines
-nvmlClocksThrottleReasonGpuIdle = 0x0000000000000001
-nvmlClocksThrottleReasonApplicationsClocksSetting = 0x0000000000000002
-nvmlClocksThrottleReasonUserDefinedClocks = nvmlClocksThrottleReasonApplicationsClocksSetting  # deprecated, use nvmlClocksThrottleReasonApplicationsClocksSetting
-nvmlClocksThrottleReasonSwPowerCap = 0x0000000000000004
-nvmlClocksThrottleReasonHwSlowdown = 0x0000000000000008
-nvmlClocksThrottleReasonUnknown = 0x8000000000000000
-nvmlClocksThrottleReasonNone = 0x0000000000000000
-nvmlClocksThrottleReasonAll = (
-        nvmlClocksThrottleReasonNone |
-        nvmlClocksThrottleReasonGpuIdle |
-        nvmlClocksThrottleReasonApplicationsClocksSetting |
-        nvmlClocksThrottleReasonSwPowerCap |
-        nvmlClocksThrottleReasonHwSlowdown |
-        nvmlClocksThrottleReasonUnknown
-)
+class ClocksThrottleReason(IntFlag):
+    GpuIdle = 1
+    ApplicationsClocksSetting = 2
+    UserDefinedClocks = ApplicationsClocksSetting  # deprecated, use nvmlClocksThrottleReasonApplicationsClocksSetting
+    SwPowerCap = 4
+    HwSlowdown = 8
+    Unknown = 0x8000000000000000
+    NONE = 0
+    All = (
+            NONE |
+            GpuIdle |
+            ApplicationsClocksSetting |
+            SwPowerCap |
+            HwSlowdown |
+            Unknown
+    )
 
 
-class c_nvmlEventData_t(_PrintableStructure):
+class cEventData.C_TYPE(_PrintableStructure):
     _fields_ = [
-        ('device', c_nvmlDevice_t),
+        ('device', cDevice.C_TYPE),
         ('eventType', c_ulonglong),
         ('eventData', c_ulonglong)
     ]
     _fmt_ = {'eventType': "0x%08X"}
 
 
-class c_nvmlAccountingStats_t(_PrintableStructure):
+class cAccountingStats.C_TYPE(_PrintableStructure):
     _fields_ = [
         ('gpuUtilization', c_uint),
         ('memoryUtilization', c_uint),
@@ -684,23 +714,23 @@ def _LoadNvmlLibrary():
     '''
     global nvmlLib
 
-    if (nvmlLib == None):
+    if nvmlLib is None:
         # lock to ensure only one caller loads the library
         libLoadLock.acquire()
 
         try:
             # ensure the library still isn't loaded
-            if (nvmlLib == None):
+            if nvmlLib is None:
                 try:
-                    if (sys.platform[:3] == "win"):
+                    if sys.platform[:3] == "win":
                         searchPaths = [
                             os.path.join(os.getenv("ProgramFiles", r"C:\Program Files"),
                                          r"NVIDIA Corporation\NVSMI\nvml.dll"),
                             os.path.join(os.getenv("WinDir", r"C:\Windows"), r"System32\nvml.dll"),
                         ]
                         nvmlPath = next((x for x in searchPaths if os.path.isfile(x)), None)
-                        if (nvmlPath == None):
-                            _nvmlCheckReturn(NVML_ERROR_LIBRARY_NOT_FOUND)
+                        if nvmlPath == None:
+                            _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
                         else:
                             # cdecl calling convention
                             nvmlLib = CDLL(nvmlPath)
@@ -708,9 +738,9 @@ def _LoadNvmlLibrary():
                         # assume linux
                         nvmlLib = CDLL("libnvidia-ml.so.1")
                 except OSError as ose:
-                    _nvmlCheckReturn(NVML_ERROR_LIBRARY_NOT_FOUND)
+                    _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
                 if (nvmlLib == None):
-                    _nvmlCheckReturn(NVML_ERROR_LIBRARY_NOT_FOUND)
+                    _nvmlCheckReturn(ERROR_LIBRARY_NOT_FOUND)
         finally:
             # lock is always freed
             libLoadLock.release()
@@ -743,9 +773,9 @@ def nvmlErrorString(result):
 
 # Added in 2.285
 def nvmlSystemGetNVMLVersion():
-    c_version = create_string_buffer(NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE)
+    c_version = create_string_buffer(SYSTEM_NVML_VERSION_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlSystemGetNVMLVersion")
-    ret = fn(c_version, c_uint(NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE))
+    ret = fn(c_version, c_uint(SYSTEM_NVML_VERSION_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_version.value
 
@@ -760,9 +790,9 @@ def nvmlSystemGetProcessName(pid):
 
 
 def nvmlSystemGetDriverVersion():
-    c_version = create_string_buffer(NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE)
+    c_version = create_string_buffer(SYSTEM_DRIVER_VERSION_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlSystemGetDriverVersion")
-    ret = fn(c_version, c_uint(NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE))
+    ret = fn(c_version, c_uint(SYSTEM_DRIVER_VERSION_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_version.value
 
@@ -777,15 +807,15 @@ def nvmlSystemGetHicVersion():
     ret = fn(byref(c_count), None)
 
     # this should only fail with insufficient size
-    if ((ret != NVML_SUCCESS) and
-            (ret != NVML_ERROR_INSUFFICIENT_SIZE)):
+    if ((ret != Return.SUCCESS.value) and
+            (ret != ERROR_INSUFFICIENT_SIZE)):
         raise NVMLError(ret)
 
     # if there are no hics
-    if (c_count.value == 0):
+    if c_count.value == 0:
         return []
 
-    hic_array = c_nvmlHwbcEntry_t * c_count.value
+    hic_array = cHwbcEntry.C_TYPE * c_count.value
     hics = hic_array()
     ret = fn(byref(c_count), hics)
     _nvmlCheckReturn(ret)
@@ -803,7 +833,7 @@ def nvmlUnitGetCount():
 
 def nvmlUnitGetHandleByIndex(index):
     c_index = c_uint(index)
-    unit = c_nvmlUnit_t()
+    unit = cUnit.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetHandleByIndex")
     ret = fn(c_index, byref(unit))
     _nvmlCheckReturn(ret)
@@ -811,7 +841,7 @@ def nvmlUnitGetHandleByIndex(index):
 
 
 def nvmlUnitGetUnitInfo(unit):
-    c_info = c_nvmlUnitInfo_t()
+    c_info = cUnitInfo.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetUnitInfo")
     ret = fn(unit, byref(c_info))
     _nvmlCheckReturn(ret)
@@ -819,7 +849,7 @@ def nvmlUnitGetUnitInfo(unit):
 
 
 def nvmlUnitGetLedState(unit):
-    c_state = c_nvmlLedState_t()
+    c_state = cLedState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetLedState")
     ret = fn(unit, byref(c_state))
     _nvmlCheckReturn(ret)
@@ -827,7 +857,7 @@ def nvmlUnitGetLedState(unit):
 
 
 def nvmlUnitGetPsuInfo(unit):
-    c_info = c_nvmlPSUInfo_t()
+    c_info = cPSUInfo.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetPsuInfo")
     ret = fn(unit, byref(c_info))
     _nvmlCheckReturn(ret)
@@ -843,7 +873,7 @@ def nvmlUnitGetTemperature(unit, type):
 
 
 def nvmlUnitGetFanSpeedInfo(unit):
-    c_speeds = c_nvmlUnitFanSpeeds_t()
+    c_speeds = cUnitFanSpeeds.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetFanSpeedInfo")
     ret = fn(unit, byref(c_speeds))
     _nvmlCheckReturn(ret)
@@ -856,15 +886,15 @@ def nvmlUnitGetDeviceCount(unit):
     # query the unit to determine device count
     fn = _nvmlGetFunctionPointer("nvmlUnitGetDevices")
     ret = fn(unit, byref(c_count), None)
-    if (ret == NVML_ERROR_INSUFFICIENT_SIZE):
-        ret = NVML_SUCCESS
+    if ret == ERROR_INSUFFICIENT_SIZE:
+        ret = Return.SUCCESS.value
     _nvmlCheckReturn(ret)
     return c_count.value
 
 
 def nvmlUnitGetDevices(unit):
     c_count = c_uint(nvmlUnitGetDeviceCount(unit))
-    device_array = c_nvmlDevice_t * c_count.value
+    device_array = cDevice.C_TYPE * c_count.value
     c_devices = device_array()
     fn = _nvmlGetFunctionPointer("nvmlUnitGetDevices")
     ret = fn(unit, byref(c_count), c_devices)
@@ -883,7 +913,7 @@ def nvmlDeviceGetCount():
 
 def nvmlDeviceGetHandleByIndex(index):
     c_index = c_uint(index)
-    device = c_nvmlDevice_t()
+    device = cDevice.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetHandleByIndex_v2")
     ret = fn(c_index, byref(device))
     _nvmlCheckReturn(ret)
@@ -892,7 +922,7 @@ def nvmlDeviceGetHandleByIndex(index):
 
 def nvmlDeviceGetHandleBySerial(serial):
     c_serial = c_char_p(serial)
-    device = c_nvmlDevice_t()
+    device = cDevice.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetHandleBySerial")
     ret = fn(c_serial, byref(device))
     _nvmlCheckReturn(ret)
@@ -901,7 +931,7 @@ def nvmlDeviceGetHandleBySerial(serial):
 
 def nvmlDeviceGetHandleByUUID(uuid):
     c_uuid = c_char_p(uuid)
-    device = c_nvmlDevice_t()
+    device = cDevice.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetHandleByUUID")
     ret = fn(c_uuid, byref(device))
     _nvmlCheckReturn(ret)
@@ -910,7 +940,7 @@ def nvmlDeviceGetHandleByUUID(uuid):
 
 def nvmlDeviceGetHandleByPciBusId(pciBusId):
     c_busId = c_char_p(pciBusId)
-    device = c_nvmlDevice_t()
+    device = cDevice.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetHandleByPciBusId_v2")
     ret = fn(c_busId, byref(device))
     _nvmlCheckReturn(ret)
@@ -918,15 +948,15 @@ def nvmlDeviceGetHandleByPciBusId(pciBusId):
 
 
 def nvmlDeviceGetName(handle):
-    c_name = create_string_buffer(NVML_DEVICE_NAME_BUFFER_SIZE)
+    c_name = create_string_buffer(DEVICE_NAME_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetName")
-    ret = fn(handle, c_name, c_uint(NVML_DEVICE_NAME_BUFFER_SIZE))
+    ret = fn(handle, c_name, c_uint(DEVICE_NAME_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_name.value
 
 
 def nvmlDeviceGetBoardId(handle):
-    c_id = c_uint();
+    c_id = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetBoardId")
     ret = fn(handle, byref(c_id))
     _nvmlCheckReturn(ret)
@@ -934,7 +964,7 @@ def nvmlDeviceGetBoardId(handle):
 
 
 def nvmlDeviceGetMultiGpuBoard(handle):
-    c_multiGpu = c_uint();
+    c_multiGpu = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetMultiGpuBoard")
     ret = fn(handle, byref(c_multiGpu))
     _nvmlCheckReturn(ret)
@@ -942,7 +972,7 @@ def nvmlDeviceGetMultiGpuBoard(handle):
 
 
 def nvmlDeviceGetBrand(handle):
-    c_type = _nvmlBrandType_t()
+    c_type = BrandType.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetBrand")
     ret = fn(handle, byref(c_type))
     _nvmlCheckReturn(ret)
@@ -950,18 +980,18 @@ def nvmlDeviceGetBrand(handle):
 
 
 def nvmlDeviceGetSerial(handle):
-    c_serial = create_string_buffer(NVML_DEVICE_SERIAL_BUFFER_SIZE)
+    c_serial = create_string_buffer(DEVICE_SERIAL_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetSerial")
-    ret = fn(handle, c_serial, c_uint(NVML_DEVICE_SERIAL_BUFFER_SIZE))
+    ret = fn(handle, c_serial, c_uint(DEVICE_SERIAL_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_serial.value
 
 
-def nvmlDeviceGetCpuAffinity(handle, cpuSetSize):
-    affinity_array = c_ulonglong * cpuSetSize
+def nvmlDeviceGetCpuAffinity(handle, cpu_set_size):
+    affinity_array = c_ulonglong * cpu_set_size
     c_affinity = affinity_array()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetCpuAffinity")
-    ret = fn(handle, cpuSetSize, byref(c_affinity))
+    ret = fn(handle, cpu_set_size, byref(c_affinity))
     _nvmlCheckReturn(ret)
     return c_affinity
 
@@ -989,27 +1019,27 @@ def nvmlDeviceGetMinorNumber(handle):
 
 
 def nvmlDeviceGetUUID(handle):
-    c_uuid = create_string_buffer(NVML_DEVICE_UUID_BUFFER_SIZE)
+    c_uuid = create_string_buffer(DEVICE_UUID_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetUUID")
-    ret = fn(handle, c_uuid, c_uint(NVML_DEVICE_UUID_BUFFER_SIZE))
+    ret = fn(handle, c_uuid, c_uint(DEVICE_UUID_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_uuid.value
 
 
-def nvmlDeviceGetInforomVersion(handle, infoRomObject):
-    c_version = create_string_buffer(NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE)
+def nvmlDeviceGetInforomVersion(handle, info_rom_object:InforomObject):
+    c_version = create_string_buffer(DEVICE_INFOROM_VERSION_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetInforomVersion")
-    ret = fn(handle, _nvmlInforomObject_t(infoRomObject),
-             c_version, c_uint(NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE))
+    ret = fn(handle, InforomObject.C_TYPE(info_rom_object.value),
+             c_version, c_uint(DEVICE_INFOROM_VERSION_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_version.value
 
 
 # Added in 4.304
 def nvmlDeviceGetInforomImageVersion(handle):
-    c_version = create_string_buffer(NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE)
+    c_version = create_string_buffer(DEVICE_INFOROM_VERSION_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetInforomImageVersion")
-    ret = fn(handle, c_version, c_uint(NVML_DEVICE_INFOROM_VERSION_BUFFER_SIZE))
+    ret = fn(handle, c_version, c_uint(DEVICE_INFOROM_VERSION_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_version.value
 
@@ -1066,7 +1096,7 @@ def nvmlDeviceGetPciInfo(handle):
 def nvmlDeviceGetClockInfo(handle, type):
     c_clock = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetClockInfo")
-    ret = fn(handle, _nvmlClockType_t(type), byref(c_clock))
+    ret = fn(handle, ClockType.C_TYPE(type), byref(c_clock))
     _nvmlCheckReturn(ret)
     return c_clock.value
 
@@ -1075,7 +1105,7 @@ def nvmlDeviceGetClockInfo(handle, type):
 def nvmlDeviceGetMaxClockInfo(handle, type):
     c_clock = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetMaxClockInfo")
-    ret = fn(handle, _nvmlClockType_t(type), byref(c_clock))
+    ret = fn(handle, ClockType.C_TYPE(type), byref(c_clock))
     _nvmlCheckReturn(ret)
     return c_clock.value
 
@@ -1084,7 +1114,7 @@ def nvmlDeviceGetMaxClockInfo(handle, type):
 def nvmlDeviceGetApplicationsClock(handle, type):
     c_clock = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetApplicationsClock")
-    ret = fn(handle, _nvmlClockType_t(type), byref(c_clock))
+    ret = fn(handle, ClockType.C_TYPE(type), byref(c_clock))
     _nvmlCheckReturn(ret)
     return c_clock.value
 
@@ -1093,7 +1123,7 @@ def nvmlDeviceGetApplicationsClock(handle, type):
 def nvmlDeviceGetDefaultApplicationsClock(handle, type):
     c_clock = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetDefaultApplicationsClock")
-    ret = fn(handle, _nvmlClockType_t(type), byref(c_clock))
+    ret = fn(handle, ClockType.C_TYPE(type), byref(c_clock))
     _nvmlCheckReturn(ret)
     return c_clock.value
 
@@ -1105,10 +1135,10 @@ def nvmlDeviceGetSupportedMemoryClocks(handle):
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetSupportedMemoryClocks")
     ret = fn(handle, byref(c_count), None)
 
-    if (ret == NVML_SUCCESS):
+    if (ret == Return.SUCCESS.value):
         # special case, no clocks
         return []
-    elif (ret == NVML_ERROR_INSUFFICIENT_SIZE):
+    elif (ret == ERROR_INSUFFICIENT_SIZE):
         # typical case
         clocks_array = c_uint * c_count.value
         c_clocks = clocks_array()
@@ -1134,10 +1164,10 @@ def nvmlDeviceGetSupportedGraphicsClocks(handle, memoryClockMHz):
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetSupportedGraphicsClocks")
     ret = fn(handle, c_uint(memoryClockMHz), byref(c_count), None)
 
-    if (ret == NVML_SUCCESS):
+    if (ret == Return.SUCCESS.value):
         # special case, no clocks
         return []
-    elif (ret == NVML_ERROR_INSUFFICIENT_SIZE):
+    elif (ret == ERROR_INSUFFICIENT_SIZE):
         # typical case
         clocks_array = c_uint * c_count.value
         c_clocks = clocks_array()
@@ -1167,7 +1197,7 @@ def nvmlDeviceGetFanSpeed(handle):
 def nvmlDeviceGetTemperature(handle, sensor):
     c_temp = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetTemperature")
-    ret = fn(handle, _nvmlTemperatureSensors_t(sensor), byref(c_temp))
+    ret = fn(handle, TemperatureSensors_t(sensor), byref(c.C_TYPEemp))
     _nvmlCheckReturn(ret)
     return c_temp.value
 
@@ -1175,14 +1205,14 @@ def nvmlDeviceGetTemperature(handle, sensor):
 def nvmlDeviceGetTemperatureThreshold(handle, threshold):
     c_temp = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetTemperatureThreshold")
-    ret = fn(handle, _nvmlTemperatureThresholds_t(threshold), byref(c_temp))
+    ret = fn(handle, TemperatureThresholds_t(threshold), byref(c.C_TYPEemp))
     _nvmlCheckReturn(ret)
     return c_temp.value
 
 
 # DEPRECATED use nvmlDeviceGetPerformanceState
 def nvmlDeviceGetPowerState(handle):
-    c_pstate = _nvmlPstates_t()
+    c_pstate = Pstates.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetPowerState")
     ret = fn(handle, byref(c_pstate))
     _nvmlCheckReturn(ret)
@@ -1190,7 +1220,7 @@ def nvmlDeviceGetPowerState(handle):
 
 
 def nvmlDeviceGetPerformanceState(handle):
-    c_pstate = _nvmlPstates_t()
+    c_pstate = Pstates.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetPerformanceState")
     ret = fn(handle, byref(c_pstate))
     _nvmlCheckReturn(ret)
@@ -1251,8 +1281,8 @@ def nvmlDeviceGetPowerUsage(handle):
 
 # Added in 4.304
 def nvmlDeviceGetGpuOperationMode(handle):
-    c_currState = _nvmlGpuOperationMode_t()
-    c_pendingState = _nvmlGpuOperationMode_t()
+    c_currState = GpuOperationMode.C_TYPE()
+    c_pendingState = GpuOperationMode.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetGpuOperationMode")
     ret = fn(handle, byref(c_currState), byref(c_pendingState))
     _nvmlCheckReturn(ret)
@@ -1270,7 +1300,7 @@ def nvmlDeviceGetPendingGpuOperationMode(handle):
 
 
 def nvmlDeviceGetMemoryInfo(handle):
-    c_memory = c_nvmlMemory_t()
+    c_memory = cMemory.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetMemoryInfo")
     ret = fn(handle, byref(c_memory))
     _nvmlCheckReturn(ret)
@@ -1278,7 +1308,7 @@ def nvmlDeviceGetMemoryInfo(handle):
 
 
 def nvmlDeviceGetBAR1MemoryInfo(handle):
-    c_bar1_memory = c_nvmlBAR1Memory_t()
+    c_bar1_memory = cBAR1Memory.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetBAR1MemoryInfo")
     ret = fn(handle, byref(c_bar1_memory))
     _nvmlCheckReturn(ret)
@@ -1286,7 +1316,7 @@ def nvmlDeviceGetBAR1MemoryInfo(handle):
 
 
 def nvmlDeviceGetComputeMode(handle):
-    c_mode = _nvmlComputeMode_t()
+    c_mode = ComputeMode.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetComputeMode")
     ret = fn(handle, byref(c_mode))
     _nvmlCheckReturn(ret)
@@ -1315,18 +1345,18 @@ def nvmlDeviceGetPendingEccMode(handle):
 def nvmlDeviceGetTotalEccErrors(handle, errorType, counterType):
     c_count = c_ulonglong()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetTotalEccErrors")
-    ret = fn(handle, _nvmlMemoryErrorType_t(errorType),
-             _nvmlEccCounterType_t(counterType), byref(c_count))
+    ret = fn(handle, MemoryErrorType.C_TYPE(errorType),
+             EccCounterType.C_TYPE(counterType), byref(c_count))
     _nvmlCheckReturn(ret)
     return c_count.value
 
 
 # This is deprecated, instead use nvmlDeviceGetMemoryErrorCounter
 def nvmlDeviceGetDetailedEccErrors(handle, errorType, counterType):
-    c_counts = c_nvmlEccErrorCounts_t()
+    c_counts = cEccErrorCounts.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetDetailedEccErrors")
-    ret = fn(handle, _nvmlMemoryErrorType_t(errorType),
-             _nvmlEccCounterType_t(counterType), byref(c_counts))
+    ret = fn(handle, MemoryErrorType.C_TYPE(errorType),
+             EccCounterType.C_TYPE(counterType), byref(c_counts))
     _nvmlCheckReturn(ret)
     return c_counts
 
@@ -1336,16 +1366,16 @@ def nvmlDeviceGetMemoryErrorCounter(handle, errorType, counterType, locationType
     c_count = c_ulonglong()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetMemoryErrorCounter")
     ret = fn(handle,
-             _nvmlMemoryErrorType_t(errorType),
-             _nvmlEccCounterType_t(counterType),
-             _nvmlMemoryLocation_t(locationType),
+             MemoryErrorType.C_TYPE(errorType),
+             EccCounterType.C_TYPE(counterType),
+             MemoryLocation.C_TYPE(locationType),
              byref(c_count))
     _nvmlCheckReturn(ret)
     return c_count.value
 
 
 def nvmlDeviceGetUtilizationRates(handle):
-    c_util = c_nvmlUtilization_t()
+    c_util = cUtilization.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetUtilizationRates")
     ret = fn(handle, byref(c_util))
     _nvmlCheckReturn(ret)
@@ -1379,8 +1409,8 @@ def nvmlDeviceGetPcieReplayCounter(handle):
 
 
 def nvmlDeviceGetDriverModel(handle):
-    c_currModel = _nvmlDriverModel_t()
-    c_pendingModel = _nvmlDriverModel_t()
+    c_currModel = DriverModel.C_TYPE()
+    c_pendingModel = DriverModel.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetDriverModel")
     ret = fn(handle, byref(c_currModel), byref(c_pendingModel))
     _nvmlCheckReturn(ret)
@@ -1399,9 +1429,9 @@ def nvmlDeviceGetPendingDriverModel(handle):
 
 # Added in 2.285
 def nvmlDeviceGetVbiosVersion(handle):
-    c_version = create_string_buffer(NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE)
+    c_version = create_string_buffer(DEVICE_VBIOS_VERSION_BUFFER_SIZE)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetVbiosVersion")
-    ret = fn(handle, c_version, c_uint(NVML_DEVICE_VBIOS_VERSION_BUFFER_SIZE))
+    ret = fn(handle, c_version, c_uint(DEVICE_VBIOS_VERSION_BUFFER_SIZE))
     _nvmlCheckReturn(ret)
     return c_version.value
 
@@ -1413,14 +1443,14 @@ def nvmlDeviceGetComputeRunningProcesses(handle):
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetComputeRunningProcesses")
     ret = fn(handle, byref(c_count), None)
 
-    if (ret == NVML_SUCCESS):
+    if ret == Return.SUCCESS.value:
         # special case, no running processes
         return []
-    elif (ret == NVML_ERROR_INSUFFICIENT_SIZE):
+    elif ret == ERROR_INSUFFICIENT_SIZE:
         # typical case
         # oversize the array incase more processes are created
         c_count.value = c_count.value * 2 + 5
-        proc_array = c_nvmlProcessInfo_t * c_count.value
+        proc_array = cProcessInfo.C_TYPE * c_count.value
         c_procs = proc_array()
 
         # make the call again
@@ -1431,7 +1461,7 @@ def nvmlDeviceGetComputeRunningProcesses(handle):
         for i in range(c_count.value):
             # use an alternative struct for this object
             obj = nvmlStructToFriendlyObject(c_procs[i])
-            if (obj.usedGpuMemory == NVML_VALUE_NOT_AVAILABLE_ulonglong.value):
+            if (obj.usedGpuMemory == VALUE_NOT_AVAILABLE_ulonglong.value):
                 # special case for WDDM on Windows, see comment above
                 obj.usedGpuMemory = None
             procs.append(obj)
@@ -1448,14 +1478,14 @@ def nvmlDeviceGetGraphicsRunningProcesses(handle):
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetGraphicsRunningProcesses")
     ret = fn(handle, byref(c_count), None)
 
-    if (ret == NVML_SUCCESS):
+    if ret == Return.SUCCESS.value:
         # special case, no running processes
         return []
-    elif (ret == NVML_ERROR_INSUFFICIENT_SIZE):
+    elif (ret == ERROR_INSUFFICIENT_SIZE):
         # typical case
         # oversize the array incase more processes are created
         c_count.value = c_count.value * 2 + 5
-        proc_array = c_nvmlProcessInfo_t * c_count.value
+        proc_array = cProcessInfo.C_TYPE * c_count.value
         c_procs = proc_array()
 
         # make the call again
@@ -1466,7 +1496,7 @@ def nvmlDeviceGetGraphicsRunningProcesses(handle):
         for i in range(c_count.value):
             # use an alternative struct for this object
             obj = nvmlStructToFriendlyObject(c_procs[i])
-            if (obj.usedGpuMemory == NVML_VALUE_NOT_AVAILABLE_ulonglong.value):
+            if (obj.usedGpuMemory == VALUE_NOT_AVAILABLE_ulonglong.value):
                 # special case for WDDM on Windows, see comment above
                 obj.usedGpuMemory = None
             procs.append(obj)
@@ -1484,13 +1514,13 @@ def nvmlDeviceGetAutoBoostedClocksEnabled(handle):
     ret = fn(handle, byref(c_isEnabled), byref(c_defaultIsEnabled))
     _nvmlCheckReturn(ret)
     return [c_isEnabled.value, c_defaultIsEnabled.value]
-    # Throws NVML_ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
+    # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
 
 
 ## Set functions
 def nvmlUnitSetLedState(unit, color):
     fn = _nvmlGetFunctionPointer("nvmlUnitSetLedState")
-    ret = fn(unit, _nvmlLedColor_t(color))
+    ret = fn(unit, LedColor.C_TYPE(color))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1504,7 +1534,7 @@ def nvmlDeviceSetPersistenceMode(handle, mode):
 
 def nvmlDeviceSetComputeMode(handle, mode):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetComputeMode")
-    ret = fn(handle, _nvmlComputeMode_t(mode))
+    ret = fn(handle, ComputeMode.C_TYPE(mode))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1518,14 +1548,14 @@ def nvmlDeviceSetEccMode(handle, mode):
 
 def nvmlDeviceClearEccErrorCounts(handle, counterType):
     fn = _nvmlGetFunctionPointer("nvmlDeviceClearEccErrorCounts")
-    ret = fn(handle, _nvmlEccCounterType_t(counterType))
+    ret = fn(handle, EccCounterType.C_TYPE(counterType))
     _nvmlCheckReturn(ret)
     return None
 
 
 def nvmlDeviceSetDriverModel(handle, model):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetDriverModel")
-    ret = fn(handle, _nvmlDriverModel_t(model))
+    ret = fn(handle, DriverModel.C_TYPE(model))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1535,7 +1565,7 @@ def nvmlDeviceSetAutoBoostedClocksEnabled(handle, enabled):
     ret = fn(handle, EnableState.C_TYPE(enabled))
     _nvmlCheckReturn(ret)
     return None
-    # Throws NVML_ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
+    # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
 
 
 def nvmlDeviceSetDefaultAutoBoostedClocksEnabled(handle, enabled, flags):
@@ -1543,7 +1573,7 @@ def nvmlDeviceSetDefaultAutoBoostedClocksEnabled(handle, enabled, flags):
     ret = fn(handle, EnableState.C_TYPE(enabled), c_uint(flags))
     _nvmlCheckReturn(ret)
     return None
-    # Throws NVML_ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
+    # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto boosted clocks
 
 
 # Added in 4.304
@@ -1573,7 +1603,7 @@ def nvmlDeviceSetPowerManagementLimit(handle, limit):
 # Added in 4.304
 def nvmlDeviceSetGpuOperationMode(handle, mode):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetGpuOperationMode")
-    ret = fn(handle, _nvmlGpuOperationMode_t(mode))
+    ret = fn(handle, GpuOperationMode.C_TYPE(mode))
     _nvmlCheckReturn(ret)
     return None
 
@@ -1581,7 +1611,7 @@ def nvmlDeviceSetGpuOperationMode(handle, mode):
 # Added in 2.285
 def nvmlEventSetCreate():
     fn = _nvmlGetFunctionPointer("nvmlEventSetCreate")
-    eventSet = c_nvmlEventSet_t()
+    eventSet = EventType.C_TYPE()
     ret = fn(byref(eventSet))
     _nvmlCheckReturn(ret)
     return eventSet
@@ -1605,10 +1635,10 @@ def nvmlDeviceGetSupportedEventTypes(handle):
 
 
 # Added in 2.285
-# raises NVML_ERROR_TIMEOUT exception on timeout
+# raises     ERROR_TIMEOUT exception on timeout
 def nvmlEventSetWait(eventSet, timeoutms):
     fn = _nvmlGetFunctionPointer("nvmlEventSetWait")
-    data = c_nvmlEventData_t()
+    data = cEventData.C_TYPE()
     ret = fn(eventSet, byref(data), c_uint(timeoutms))
     _nvmlCheckReturn(ret)
     return data
@@ -1718,11 +1748,11 @@ def nvmlDeviceClearAccountingPids(handle):
 
 
 def nvmlDeviceGetAccountingStats(handle, pid):
-    stats = c_nvmlAccountingStats_t()
+    stats = cAccountingStats.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetAccountingStats")
     ret = fn(handle, c_uint(pid), byref(stats))
     _nvmlCheckReturn(ret)
-    if (stats.maxMemoryUsage == NVML_VALUE_NOT_AVAILABLE_ulonglong.value):
+    if (stats.maxMemoryUsage == VALUE_NOT_AVAILABLE_ulonglong.value):
         # special case for WDDM on Windows, see comment above
         stats.maxMemoryUsage = None
     return stats
@@ -1746,7 +1776,7 @@ def nvmlDeviceGetAccountingBufferSize(handle):
 
 
 def nvmlDeviceGetRetiredPages(device, sourceFilter):
-    c_source = _nvmlPageRetirementCause_t(sourceFilter)
+    c_source = PageRetirementCause.C_TYPE(sourceFilter)
     c_count = c_uint(0)
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetRetiredPages")
 
@@ -1754,8 +1784,8 @@ def nvmlDeviceGetRetiredPages(device, sourceFilter):
     ret = fn(device, c_source, byref(c_count), None)
 
     # this should only fail with insufficient size
-    if ((ret != NVML_SUCCESS) and
-            (ret != NVML_ERROR_INSUFFICIENT_SIZE)):
+    if ((ret != Return.SUCCESS.value) and
+            (ret != ERROR_INSUFFICIENT_SIZE)):
         raise NVMLError(ret)
 
     # call again with a buffer
@@ -1780,20 +1810,20 @@ def nvmlDeviceGetRetiredPagesPendingStatus(device):
 def nvmlDeviceGetAPIRestriction(device, apiType):
     c_permission = EnableState.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetAPIRestriction")
-    ret = fn(device, _nvmlRestrictedAPI_t(apiType), byref(c_permission))
+    ret = fn(device, RestrictedAPI.C_TYPE(apiType), byref(c_permission))
     _nvmlCheckReturn(ret)
     return int(c_permission.value)
 
 
 def nvmlDeviceSetAPIRestriction(handle, apiType, isRestricted):
     fn = _nvmlGetFunctionPointer("nvmlDeviceSetAPIRestriction")
-    ret = fn(handle, _nvmlRestrictedAPI_t(apiType), EnableState.C_TYPE(isRestricted))
+    ret = fn(handle, RestrictedAPI_t(apiType), EnableState.C.C_TYPEYPE(isRestricted))
     _nvmlCheckReturn(ret)
     return None
 
 
 def nvmlDeviceGetBridgeChipInfo(handle):
-    bridgeHierarchy = c_nvmlBridgeChipHierarchy_t()
+    bridgeHierarchy = cBridgeChipHierarchy.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetBridgeChipInfo")
     ret = fn(handle, byref(bridgeHierarchy))
     _nvmlCheckReturn(ret)
@@ -1801,20 +1831,20 @@ def nvmlDeviceGetBridgeChipInfo(handle):
 
 
 def nvmlDeviceGetSamples(device, sampling_type, timeStamp):
-    c_sampling_type = _nvmlSamplingType_t(sampling_type)
+    c_sampling_type = SamplingType_t(sampling.C_TYPEype)
     c_time_stamp = c_ulonglong(timeStamp)
     c_sample_count = c_uint(0)
-    c_sample_value_type = _nvmlValueType_t()
+    c_sample_value_type = ValueType.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetSamples")
 
     ## First Call gets the size
     ret = fn(device, c_sampling_type, c_time_stamp, byref(c_sample_value_type), byref(c_sample_count), None)
 
     # Stop if this fails
-    if (ret != NVML_SUCCESS):
+    if (ret != Return.SUCCESS.value):
         raise NVMLError(ret)
 
-    sampleArray = c_sample_count.value * c_nvmlSample_t
+    sampleArray = c_sample_count.value * cSample.C_TYPE
     c_samples = sampleArray()
     ret = fn(device, c_sampling_type, c_time_stamp, byref(c_sample_value_type), byref(c_sample_count), c_samples)
     _nvmlCheckReturn(ret)
@@ -1822,8 +1852,8 @@ def nvmlDeviceGetSamples(device, sampling_type, timeStamp):
 
 
 def nvmlDeviceGetViolationStatus(device, perfPolicyType):
-    c_perfPolicy_type = _nvmlPerfPolicyType_t(perfPolicyType)
-    c_violTime = c_nvmlViolationTime_t()
+    c_perfPolicy_type = PerfPolicyType.C_TYPE(perfPolicyType)
+    c_violTime = cViolationTime.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetViolationStatus")
 
     ## Invoke the method to get violation time
@@ -1835,7 +1865,7 @@ def nvmlDeviceGetViolationStatus(device, perfPolicyType):
 def nvmlDeviceGetPcieThroughput(device, counter):
     c_util = c_uint()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetPcieThroughput")
-    ret = fn(device, _nvmlPcieUtilCounter_t(counter), byref(c_util))
+    ret = fn(device, PcieUtilCounter.C_TYPE(counter), byref(c_util))
     _nvmlCheckReturn(ret)
     return c_util.value
 
@@ -1847,11 +1877,11 @@ def nvmlSystemGetTopologyGpuSet(cpuNumber):
     # First call will get the size
     ret = fn(cpuNumber, byref(c_count), None)
 
-    if ret != NVML_SUCCESS:
+    if ret != Return.SUCCESS.value:
         raise NVMLError(ret)
     print(c_count.value)
     # call again with a buffer
-    device_array = c_nvmlDevice_t * c_count.value
+    device_array = cDevice.C_TYPE * c_count.value
     c_devices = device_array()
     ret = fn(cpuNumber, byref(c_count), c_devices)
     _nvmlCheckReturn(ret)
@@ -1865,11 +1895,11 @@ def nvmlDeviceGetTopologyNearestGpus(device, level):
     # First call will get the size
     ret = fn(device, level, byref(c_count), None)
 
-    if ret != NVML_SUCCESS:
+    if ret != Return.SUCCESS.value:
         raise NVMLError(ret)
 
     # call again with a buffer
-    device_array = c_nvmlDevice_t * c_count.value
+    device_array = cDevice.C_TYPE * c_count.value
     c_devices = device_array()
     ret = fn(device, level, byref(c_count), c_devices)
     _nvmlCheckReturn(ret)
@@ -1877,7 +1907,7 @@ def nvmlDeviceGetTopologyNearestGpus(device, level):
 
 
 def nvmlDeviceGetTopologyCommonAncestor(device1, device2):
-    c_level = _nvmlGpuTopologyLevel_t()
+    c_level = GpuTopologyLevel.C_TYPE()
     fn = _nvmlGetFunctionPointer("nvmlDeviceGetTopologyCommonAncestor")
     ret = fn(device1, device2, byref(c_level))
     _nvmlCheckReturn(ret)
