@@ -24,6 +24,9 @@ class UIntEnum(Enum, metaclass=MetaEnum):
         else:
             return True
 
+    def as_c_type(self):
+        return UIntEnum.c_type(self.value)
+
 
 class EnableState(UIntEnum):
     FEATURE_DISABLED = 0
@@ -175,12 +178,6 @@ class ValueType(UIntEnum):
         return mapping[self]
 
 
-class PerfPolicyType(UIntEnum):
-    PERF_POLICY_POWER = 0
-    PERF_POLICY_THERMAL = 1
-    PERF_POLICY_COUNT = 2
-
-
 class SamplingType(UIntEnum):
     TOTAL_POWER_SAMPLES = 0
     GPU_UTILIZATION_SAMPLES = 1
@@ -194,3 +191,113 @@ class SamplingType(UIntEnum):
 class PcieUtilCounter(UIntEnum):
     TX_BYTES = 0
     PRX_BYTES = 1
+
+
+#################################
+#          New Enums            #
+#################################
+
+class ClockId(UIntEnum):
+    """
+    Clock Ids. These are used in combination with ClockType to specify a single clock value.
+    """
+    # Current actual clock value.
+    CURRENT = 0
+    # Target application clock.
+    APP_CLOCK_TARGET = 1
+    # Default application clock target.
+    APP_CLOCK_DEFAULT = 2
+    # OEM - defined maximum clock rate.
+    CUSTOMER_BOOST_MAX = 3
+
+
+#################################
+#          Drain State          #
+#################################
+
+class DetachGpuState(UIntEnum):
+    """
+    Is the GPU device to be removed from the kernel by nvmlDeviceRemoveGpu()
+    """
+    KEEP = 0
+    REMOVE = 1
+
+
+class PcieLinkState(UIntEnum):
+    """
+    Parent bridge PCIe link state requested by nvmlDeviceRemoveGpu()
+    """
+    KEEP = 0
+    SHUT_DOWN = 1
+
+
+#################################
+#          NVML DEVICE          #
+#################################
+
+
+class NvLinkCapability(UIntEnum):
+    """Enum to represent NvLink queryable capabilities"""
+
+    P2P_SUPPORTED = 0
+    SYSMEM_ACCESS = 1
+    P2P_ATOMICS = 2
+    SYSMEM_ATOMICS = 3
+    SLI_BRIDGE = 4
+    VALID = 5
+
+
+class NvLinkErrorCounter(UIntEnum):
+    """Enum to represent NvLink queryable error counters"""
+
+    REPLAY = 0
+    RECOVERY = 1
+    CRC_FLIT = 2
+    CRC_DATA = 3
+
+
+class NvLinkUtilizationCountPktTypes(UIntEnum):
+    """Enum to represent the NvLink utilization counter packet types to count
+    ** this is ONLY applicable with the units as packets or bytes
+    ** as specified in nvmlNvLinkUtilizationCountUnits_t
+    ** all packet filter descriptions are target GPU centric
+    ** these can be "OR'd" together"""
+
+    NOP = 0x1
+    READ = 0x2
+    WRITE = 0x4
+    RATOM = 0x8
+    NRATOM = 0x10
+    FLUSH = 0x20
+    RESPDATA = 0x40
+    RESPNODATA = 0x80
+    ALL = 0xFF
+
+
+class NvLinkUtilizationCountUnits(UIntEnum):
+    """Enum to represent the NvLink utilization counter packet units"""
+
+    CYCLES = 0
+    PACKETS = 1
+    BYTES = 2
+    RESERVED = 3
+
+
+class PerfPolicyType(UIntEnum):
+    """Represents type of perf policy for which violation times can be queried"""
+    #  How long did power violations cause the GPU to be below application clocks.
+    PERF_POLICY_POWER = 0
+    # How long did thermal violations cause the GPU to be below application clocks.
+    PERF_POLICY_THERMAL = 1
+    # How long did sync boost cause the GPU to be below application clocks.
+    PERF_POLICY_COUNT = 2
+    # How long did the board limit cause the GPU to be below application clocks.
+    BOARD_LIMIT = 3
+    # How long did low utilization cause the GPU to be below application clocks.        
+    LOW_UTILIZATION = 4
+    # How long did the board reliability limit cause the GPU to be below application clocks.
+    RELIABILITY = 5
+    # Total time the GPU was held below application clocks by any limiter (0 - 5 above).
+    TOTAL_APP_CLOCKS = 10
+    # Total time the GPU was held below base clocks.
+    TOTAL_BASE_CLOCKS = 11
