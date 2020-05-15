@@ -37,7 +37,7 @@ from pathlib import Path
 
 from constants import *
 from enums import *
-from errors import Return
+from errors import Return, NVMLError, NVMLErrorFunctionNotFound, NVMLErrorSharedLibraryNotFound
 from structs import *
 from flags import *
 
@@ -313,6 +313,13 @@ class Device(NvmlBase):
 
     @staticmethod
     def from_uuid(uuid: str):
+        """
+
+        @param uuid:
+        @type uuid:
+        @return:
+        @rtype:
+        """
         c_uuid = c_char_p(uuid.encode("ASCII"))
         handle = CDevicePointer()
         fn = NVMLLib().get_function_pointer("nvmlDeviceGetHandleByUUID")
@@ -342,6 +349,330 @@ class Device(NvmlBase):
         ret = fn(c_busId, byref(handle))
         Return.check(ret)
         return Device(handle)
+
+    #
+    # New Methods
+    #
+    def get_cuda_compute_capability(self):
+        """
+
+        @return:
+        @rtype:
+        """
+        major, minor = c_int(), c_int()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetCudaComputeCapability")
+        ret = fn(self.handle, byref(major), byref(minor))
+        Return.check(ret)
+        return major.value, minor.value
+
+    def get_clock(self, clock_type: ClockType, clock_id: ClockId) -> int:
+        """
+        Retrieves the clock speed for the clock specified by the clock type and clock ID.
+
+        KEPLER_OR_NEWER
+        @param clock_type: Identify which clock domain to query
+        @type clock_type: ClockType
+        @param clock_id: Identify which clock in the domain to query
+        @type clock_id: ClockId
+        @return: clock in MHz
+        @rtype: int
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceGetClock")
+        clock_mhz = c_uint()
+        ret = fn(self.handle, clock_type.as_c_type(), clock_id.as_c_type(), byref(clock_mhz))
+        Return.check(ret)
+        return clock_mhz.value
+
+    def get_total_energy_consumption(self) -> int:
+        """
+        Retrieves total energy consumption for this GPU in millijoules (mJ) since the driver was last reloaded
+
+        VOLTA_OR_NEWER
+        @return: energy consumption for this GPU in millijoules (mJ)
+        @rtype: int
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceGetTotalEnergyConsumption")
+        energy = c_ulonglong()
+        ret = fn(self.handle, byref(energy))
+        Return.check(ret)
+        return energy.value
+
+    #################################
+    #          Drain State          #
+    #################################
+
+    #################################
+    #        Device Commands        #
+    #################################
+    """
+        This chapter describes NVML operations that change the state of the device.
+        Each of these requires root/admin access.
+        Non-admin users will see an NVML_ERROR_NO_PERMISSION error code when invoking any of these methods. 
+    """
+    def clear_ecc_error_counts(self, counterType: EccCounterType):
+        """
+        Clear the ECC error and other memory error counts for the device.
+
+KEPLER_OR_NEWER% Only applicable to devices with ECC. Requires NVML_INFOROM_ECC version 2.0 or higher to clear aggregate location-based ECC counts. Requires NVML_INFOROM_ECC version 1.0 or higher to clear all other ECC counts. Requires root/admin permissions. Requires ECC Mode to be enabled.
+
+Sets all of the specified ECC counters to 0, including both detailed and total counts.
+
+This operation takes effect immediately.
+
+See nvmlMemoryErrorType_t for details on available counter types.
+
+See also:
+
+    nvmlDeviceGetDetailedEccErrors()
+
+    nvmlDeviceGetTotalEccErrors()
+
+        @param counterType:
+        @type counterType:
+        @return:
+        @rtype:
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceClearEccErrorCounts")
+        ret = fn(self.handle, counterType.as_c_type())
+        Return.check(ret)
+        return None
+
+    def reset_gpu_locked_clocks(self):
+        """
+        @summary: Resets the gpu clock to the default value
+        This is the gpu clock that will be used after system reboot or driver reload.
+        Default values are idle clocks, but the current values can be changed using nvmlDeviceSetApplicationsClocks.
+
+        See also:
+        nvmlDeviceSetGpuLockedClocks
+
+        VOLTA_OR_NEWER
+        @return:
+        @rtype:
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceResetGpuLockedClocks")
+        ret = fn(self.handle)
+        Return.check(ret)
+
+    def set_api_restriction(self, apiType: RestrictedAPI, isRestricted):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetAPIRestriction")
+        ret = fn(self.handle, apiType.as_c_type(),
+                 EnableState.YPE(isRestricted))
+        Return.check(ret)
+        return None
+
+    # Added in 4.304
+    def set_applications_clocks(self, max_mem_clock_mhz, max_graphics_clock_mhz):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetApplicationsClocks")
+        ret = fn(self.handle, c_uint(max_mem_clock_mhz), c_uint(max_graphics_clock_mhz))
+        Return.check(ret)
+        return None
+
+    def set_compute_mode(self, mode: ComputeMode):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetComputeMode")
+        ret = fn(self.handle, mode.as_c_type())
+        Return.check(ret)
+        return None
+
+    def set_driver_model(self, model: DriverModel):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetDriverModel")
+        ret = fn(self.handle, model.as_c_type())
+        Return.check(ret)
+        return None
+
+    def set_ecc_mode(self, mode: EnableState):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetEccMode")
+        ret = fn(self.handle, mode.as_c_type())
+        Return.check(ret)
+        return None
+
+    def set_gpu_locked_clocks(self, min_gpu_clock_mhz: int, max_gpu_clock_mhz: int):
+        """
+        Set clocks that device will lock to.
+
+        Sets the clocks that the device will be running at to the value in the range of minGpuClockMHz to maxGpuClockMHz. Setting this will supercede application clock values and take effect regardless if a cuda app is running. See /ref nvmlDeviceSetApplicationsClocks
+
+        Can be used as a setting to request constant performance.
+
+        Requires root/admin permissions.
+
+        After system reboot or driver reload applications clocks go back to their default value. See nvmlDeviceResetGpuLockedClocks.
+
+        VOLTA_OR_NEWER
+        @param min_gpu_clock_mhz:
+        @type min_gpu_clock_mhz:
+        @param max_gpu_clock_mhz:
+        @type max_gpu_clock_mhz:
+        @return:
+        @rtype:
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceSetGpuLockedClocks")
+        ret = fn(self.handle, c_uint(min_gpu_clock_mhz), c_uint(max_gpu_clock_mhz))
+        Return.check(ret)
+
+    # Added in 4.304
+    def set_gpu_operation_mode(self, mode):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetGpuOperationMode")
+        ret = fn(self.handle, GpuOperationMode.c_type(mode))
+        Return.check(ret)
+        return None
+
+    def set_persistence_mode(self, enable_state: EnableState):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetPersistenceMode")
+        ret = fn(self.handle, enable_state.as_c_type())
+        Return.check(ret)
+        return None
+
+    # Added in 4.304
+    def set_power_management_limit(self, limit):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetPowerManagementLimit")
+        ret = fn(self.handle, c_uint(limit))
+        Return.check(ret)
+        return None
+
+
+    def get_nvlink(self, link_id: int):
+        """
+        Create an NvLink object, which provides nvlink methods.
+        @param link_id: the id of the nvlink
+        @type link_id: int
+        @return: NvLink object
+        @rtype: NvLink
+        """
+        return NvLink(self, link_id)
+
+
+    #################################
+    #        NvLink Methods         #
+    #################################
+
+
+    def freeze_nv_link_utilization_counter(self, link: int, counter: int, freeze: EnableState) -> None:
+        """
+        Freeze the NVLINK utilization counters Both the receive and transmit counters are operated on by this function
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param counter: Specifies the counter that should be frozen (0 or 1).
+        @type counter: int
+        @param freeze: NVML_FEATURE_ENABLED = freeze the receive and transmit counters
+            NVML_FEATURE_DISABLED = unfreeze the receive and transmit counters
+        @type freeze: EnableState
+        @return: None
+        @rtype: None
+        """
+        fn = self.lib.get_function_pointer("nvmlDeviceFreezeNvLinkUtilizationCounter")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), freeze.as_c_type())
+        Return.check(ret)
+
+    def get_nv_link_capability(self, link: int, capability: NvLinkCapability) -> bool:
+        """
+        Retrieves the requested capability from the device's NvLink for the link specified.
+        Please refer to the nvmlNvLinkCapability_t structure for the specific caps that can be queried.
+        The return value should be treated as a boolean.
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param capability: Specifies the nvmlNvLinkCapability_t to be queried
+        @type capability: NvLinkCapability
+        @return: A boolean for the queried capability indicating that feature is available
+        @rtype: bool
+        """
+        cap_result = c_uint()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkCapability")
+        ret = fn(self.handle, c_uint(link), capability.as_c_type(), byref(cap_result))
+        Return.check(ret)
+        return bool(cap_result.value)
+
+    def get_nv_link_error_counter(self, link: int, counter: NvLinkErrorCounter) -> int:
+        """ Retrieves the specified error counter value.
+        Please refer to nvmlNvLinkErrorCounter_t for error counters that are available
+
+        PASCAL_OR_NEWER
+        @return: error counter value
+        @rtype: int
+        """
+        counter_value = c_ulonglong()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkErrorCounter")
+        ret = fn(self.handle, c_uint(link), counter.as_c_type(), byref(counter_value))
+        Return.check(ret)
+        return counter_value.value
+
+    def nvmlDeviceGetNvLinkRemotePciInfo(self, link: int) -> PciInfo:
+        """Retrieves the PCI information for the remote node on a NvLink link
+        Note: pciSubSystemId is not filled in this function and is indeterminate
+
+        PASCAL_OR_NEWER"""
+        pci_info = PciInfo()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkRemotePciInfo")
+        ret = fn(self.handle, c_uint(link), byref(pci_info))
+        Return.check(ret)
+        return pci_info
+
+    def nvmlDeviceGetNvLinkState(self, link: int) -> EnableState:
+        """Retrieves the state of the device's NvLink for the link specified
+
+        PASCAL_OR_NEWER"""
+        is_active = EnableState.c_type()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkState")
+        ret = fn(self.handle, c_uint(link), byref(is_active))
+        Return.check(ret)
+        return EnableState(is_active.value)
+
+    def nvmlDeviceGetNvLinkUtilizationControl(self, link: int, counter: int) -> NvLinkUtilizationControl:
+        """Get the NVLINK utilization counter control information for the specified counter, 0 or 1.
+        Please refer to nvmlNvLinkUtilizationControl_t for the structure definition.
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param counter: Specifies the counter that should be set (0 or 1).
+        @type counter: int
+        @return: NvLink utilization counter control information for the specified counter
+        @rtype: NvLinkUtilizationControl
+        """
+
+        control = NvLinkUtilizationControl()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkUtilizationControl")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(control))
+        Return.check(ret)
+        return control
+
+    def nvmlDeviceGetNvLinkUtilizationCounter(self, link: int, counter: int):
+        rx_counter, tx_counter = c_ulonglong(), c_ulonglong()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkUtilizationCounter")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(rx_counter), byref(tx_counter))
+        Return.check(ret)
+        return rx_counter.value, tx_counter.value
+
+    def nvmlDeviceGetNvLinkVersion(self, link: int) -> int:
+        version = c_uint()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkVersion")
+        ret = fn(self.handle, c_uint(link), byref(version))
+        Return.check(ret)
+        return version.value
+
+    def nvmlDeviceResetNvLinkErrorCounters(self, link: int):
+        fn = self.lib.get_function_pointer("nvmlDeviceResetNvLinkErrorCounters")
+        ret = fn(self.handle, c_uint(link))
+        Return.check(ret)
+
+    def nvmlDeviceResetNvLinkUtilizationCounter(self, link: int, counter: int):
+        fn = self.lib.get_function_pointer("nvmlDeviceResetNvLinkUtilizationCounter")
+        ret = fn(self.handle, c_uint(link), c_uint(counter))
+        Return.check(ret)
+
+    def nvmlDeviceSetNvLinkUtilizationControl(self, link: int, counter: int,
+                                              control: NvLinkUtilizationControl, reset: bool):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetNvLinkUtilizationControl")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(control), c_uint(reset))
+        Return.check(ret)
+
+    #################################
+    #          Old Methods          #
+    #################################
 
     def get_name(self) -> str:
         c_name = create_string_buffer(Device.NAME_BUFFER_SIZE)
@@ -382,7 +713,7 @@ class Device(NvmlBase):
         affinity_array = c_ulonglong * cpu_set_size
         c_affinity = affinity_array()
         fn = self.lib.get_function_pointer("nvmlDeviceGetCpuAffinity")
-        ret = fn(self.handle, cpu_set_size, byref(c_affinity))
+        ret = fn(self.handle, c_uint(cpu_set_size), byref(c_affinity))
         Return.check(ret)
         return c_affinity
 
@@ -450,75 +781,75 @@ class Device(NvmlBase):
         Return.check(ret)
         return c_mode.value
 
-    def nvmlDeviceGetDisplayActive(handle):
-        _mode = EnableState()
+    def nvml_device_get_display_active(self):
+        c_mode = EnableState.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDisplayActive")
-        ret = fn(handle, byref(c_mode))
+        ret = fn(self.handle, byref(c_mode))
         Return.check(ret)
         return c_mode.value
 
-    def nvmlDeviceGetPersistenceMode(handle):
-        _state = EnableState()
+    def get_persistence_mode(self) -> EnableState:
+        c_state = EnableState.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPersistenceMode")
-        ret = fn(handle, byref(c_state))
+        ret = fn(self.handle, byref(c_state))
         Return.check(ret)
-        return c_state.value
+        return EnableState(c_state.value)
 
-    def nvmlDeviceGetPciInfo(handle):
+    def nvml_device_get_pci_info(self):
         c_info = PciInfo()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPciInfo_v2")
-        ret = fn(handle, byref(c_info))
+        ret = fn(self.handle, byref(c_info))
         Return.check(ret)
         return c_info
 
-    def nvmlDeviceGetClockInfo(handle, type):
+    def nvml_device_get_clock_info(self, clock_type):
         c_clock = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetClockInfo")
-        ret = fn(handle, lockType(type), byref(c_clock))
+        ret = fn(self.handle, ClockType.c_type(clock_type), byref(c_clock))
         Return.check(ret)
         return c_clock.value
 
     # Added in 2.285
-    def nvmlDeviceGetMaxClockInfo(handle, type):
+    def nvml_device_get_max_clock_info(self, clock_type:ClockType):
         c_clock = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetMaxClockInfo")
-        ret = fn(handle, lockType(type), byref(c_clock))
+        ret = fn(self.handle, clock_type.as_c_type(), byref(c_clock))
         Return.check(ret)
         return c_clock.value
 
     # Added in 4.304
-    def nvmlDeviceGetApplicationsClock(handle, type):
+    def nvml_device_get_applications_clock(self, clock_type):
         c_clock = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetApplicationsClock")
-        ret = fn(handle, lockType(type), byref(c_clock))
+        ret = fn(self.handle, ClockType.c_type(type), byref(c_clock))
         Return.check(ret)
         return c_clock.value
 
     # Added in 5.319
-    def nvmlDeviceGetDefaultApplicationsClock(handle, type):
+    def nvml_device_get_default_applications_clock(self, clock_type):
         c_clock = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDefaultApplicationsClock")
-        ret = fn(handle, lockType(type), byref(c_clock))
+        ret = fn(self.handle, ClockType.c_type(type), byref(c_clock))
         Return.check(ret)
         return c_clock.value
 
     # Added in 4.304
-    def nvmlDeviceGetSupportedMemoryClocks(handle):
+    def nvml_device_get_supported_memory_clocks(self):
         # first call to get the size
         c_count = c_uint(0)
         fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedMemoryClocks")
-        ret = fn(handle, byref(c_count), None)
+        ret = fn(self.handle, byref(c_count), None)
 
-        if (ret == Return.SUCCESS.value):
+        if ret == Return.SUCCESS.value:
             # special case, no clocks
             return []
-        elif (ret == ERROR_INSUFFICIENT_SIZE):
+        elif ret == Return.INSUFFICIENT_SIZE.value:
             # typical case
             clocks_array = c_uint * c_count.value
             c_clocks = clocks_array()
 
             # make the call again
-            ret = fn(handle, byref(c_count), c_clocks)
+            ret = fn(self.handle, byref(c_count), c_clocks)
             Return.check(ret)
 
             procs = []
@@ -528,25 +859,25 @@ class Device(NvmlBase):
             return procs
         else:
             # error case
-            raise NVMLError(ret)
+            raise NVMLError.from_return(ret)
 
     # Added in 4.304
-    def nvmlDeviceGetSupportedGraphicsClocks(handle, memoryClockMHz):
+    def nvml_device_get_supported_graphics_clocks(self, memory_clock_mhz):
         # first call to get the size
         c_count = c_uint(0)
         fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedGraphicsClocks")
-        ret = fn(handle, c_uint(memoryClockMHz), byref(c_count), None)
+        ret = fn(self.handle, c_uint(memory_clock_mhz), byref(c_count), None)
 
-        if (ret == Return.SUCCESS.value):
+        if ret == Return.SUCCESS.value:
             # special case, no clocks
             return []
-        elif (ret == ERROR_INSUFFICIENT_SIZE):
+        elif ret == Return.INSUFFICIENT_SIZE.value:
             # typical case
             clocks_array = c_uint * c_count.value
             c_clocks = clocks_array()
 
             # make the call again
-            ret = fn(handle, c_uint(memoryClockMHz), byref(c_count), c_clocks)
+            ret = fn(self.handle, c_uint(memory_clock_mhz), byref(c_count), c_clocks)
             Return.check(ret)
 
             procs = []
@@ -558,169 +889,165 @@ class Device(NvmlBase):
             # error case
             raise NVMLError(ret)
 
-    def nvmlDeviceGetFanSpeed(handle):
+    def nvml_device_get_fan_speed(self):
         c_speed = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetFanSpeed")
-        ret = fn(handle, byref(c_speed))
+        ret = fn(self.handle, byref(c_speed))
         Return.check(ret)
         return c_speed.value
 
-    def nvmlDeviceGetTemperature(handle, sensor):
+    def nvml_device_get_temperature(self, sensor):
         c_temp = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetTemperature")
-        ret = fn(handle, TemperatureSensors_t(sensor), byref(emp))
+        ret = fn(self.handle, TemperatureSensors.c_type(sensor), byref(c_temp))
         Return.check(ret)
         return c_temp.value
 
-    def nvmlDeviceGetTemperatureThreshold(handle, threshold):
+    def nvml_device_get_temperature_threshold(self, threshold):
         c_temp = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetTemperatureThreshold")
-        ret = fn(handle, TemperatureThresholds_t(threshold), byref(emp))
+        ret = fn(self.handle, TemperatureThresholds.c_type(threshold), byref(c_temp))
         Return.check(ret)
         return c_temp.value
 
     # DEPRECATED use nvmlDeviceGetPerformanceState
-    def nvmlDeviceGetPowerState(handle):
+    def nvml_device_get_power_state(self):
         _P = Ps()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerState")
-        ret = fn(handle, byref(c_P))
+        ret = fn(self.handle, byref(c_P))
         Return.check(ret)
         return c_P.value
 
-    def nvmlDeviceGetPerformanceState(handle):
+    def nvml_device_get_performance_state(self):
         _P = Ps()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPerformanceState")
-        ret = fn(handle, byref(c_P))
+        ret = fn(self.handle, byref(c_P))
         Return.check(ret)
         return c_P.value
 
-    def nvmlDeviceGetPowerManagementMode(handle):
+    def nvml_device_get_power_management_mode(self):
         _pcapMode = EnableState()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerManagementMode")
-        ret = fn(handle, byref(c_pcapMode))
+        ret = fn(self.handle, byref(c_pcapMode))
         Return.check(ret)
         return c_pcapMode.value
 
-    def nvmlDeviceGetPowerManagementLimit(handle):
+    def nvml_device_get_power_management_limit(self):
         c_limit = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerManagementLimit")
-        ret = fn(handle, byref(c_limit))
+        ret = fn(self.handle, byref(c_limit))
         Return.check(ret)
         return c_limit.value
 
     # Added in 4.304
-    def nvmlDeviceGetPowerManagementLimitConstraints(handle):
+    def nvml_device_get_power_management_limit_constraints(self):
         c_minLimit = c_uint()
         c_maxLimit = c_uint()
         fn = self.lib.get_function_pointer(
             "nvmlDeviceGetPowerManagementLimitConstraints")
-        ret = fn(handle, byref(c_minLimit), byref(c_maxLimit))
+        ret = fn(self.handle, byref(c_minLimit), byref(c_maxLimit))
         Return.check(ret)
         return [c_minLimit.value, c_maxLimit.value]
 
     # Added in 4.304
-    def nvmlDeviceGetPowerManagementDefaultLimit(handle):
+    def nvml_device_get_power_management_default_limit(self):
         c_limit = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerManagementDefaultLimit")
-        ret = fn(handle, byref(c_limit))
+        ret = fn(self.handle, byref(c_limit))
         Return.check(ret)
         return c_limit.value
 
     # Added in 331
-    def nvmlDeviceGetEnforcedPowerLimit(handle):
+    def nvml_device_get_enforced_power_limit(self):
         c_limit = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetEnforcedPowerLimit")
-        ret = fn(handle, byref(c_limit))
+        ret = fn(self.handle, byref(c_limit))
         Return.check(ret)
         return c_limit.value
 
-    def nvmlDeviceGetPowerUsage(handle):
+    def nvml_device_get_power_usage(self):
         c_watts = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerUsage")
-        ret = fn(handle, byref(c_watts))
+        ret = fn(self.handle, byref(c_watts))
         Return.check(ret)
         return c_watts.value
 
     # Added in 4.304
-    def nvmlDeviceGetGpuOperationMode(handle):
-        _currState = GpuOperationMode()
-        _pendingState = GpuOperationMode()
+    def nvml_device_get_gpu_operation_mode(self):
+        c_currState = GpuOperationMode()
+        c_pendingState = GpuOperationMode()
         fn = self.lib.get_function_pointer("nvmlDeviceGetGpuOperationMode")
-        ret = fn(handle, byref(c_currState), byref(c_pendingState))
+        ret = fn(self.handle, byref(c_currState), byref(c_pendingState))
         Return.check(ret)
         return [c_currState.value, c_pendingState.value]
 
     # Added in 4.304
-    def nvmlDeviceGetCurrentGpuOperationMode(handle):
-        return nvmlDeviceGetGpuOperationMode(handle)[0]
+    def nvml_device_get_current_gpu_operation_mode(self):
+        return self.nvmlDeviceGetGpuOperationMode(self.handle)[0]
 
     # Added in 4.304
-    def nvmlDeviceGetPendingGpuOperationMode(handle):
-        return nvmlDeviceGetGpuOperationMode(handle)[1]
+    def nvml_device_get_pending_gpu_operation_mode(self):
+        return self.nvmlDeviceGetGpuOperationMode(self.handle)[1]
 
-    def nvmlDeviceGetMemoryInfo(handle):
-        _memory = cMemory()
+    def nvml_device_get_memory_info(self):
+        c_memory = Memory()
         fn = self.lib.get_function_pointer("nvmlDeviceGetMemoryInfo")
-        ret = fn(handle, byref(c_memory))
+        ret = fn(self.handle, byref(c_memory))
         Return.check(ret)
         return c_memory
 
-    def nvmlDeviceGetBAR1MemoryInfo(handle):
-        _bar1_memory = cBAR1Memory()
+    def nvml_device_get_b_a_r1_memory_info(self):
+        c_bar1_memory = BAR1Memory()
         fn = self.lib.get_function_pointer("nvmlDeviceGetBAR1MemoryInfo")
-        ret = fn(handle, byref(c_bar1_memory))
+        ret = fn(self.handle, byref(c_bar1_memory))
         Return.check(ret)
         return c_bar1_memory
 
-    def nvmlDeviceGetComputeMode(handle):
-        _mode = ComputeMode()
+    def nvml_device_get_compute_mode(self):
+        c_mode = ComputeMode.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetComputeMode")
-        ret = fn(handle, byref(c_mode))
+        ret = fn(self.handle, byref(c_mode))
         Return.check(ret)
         return c_mode.value
 
-    def nvmlDeviceGetEccMode(handle):
-        _currState = EnableState()
-        _pendingState = EnableState()
+    def nvml_device_get_ecc_mode(self):
+        c_currState = EnableState.c_type()
+        c_pendingState = EnableState.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetEccMode")
-        ret = fn(handle, byref(c_currState), byref(c_pendingState))
+        ret = fn(self.handle, byref(c_currState), byref(c_pendingState))
         Return.check(ret)
         return [c_currState.value, c_pendingState.value]
 
     # added to API
-    def nvmlDeviceGetCurrentEccMode(handle):
-        return nvmlDeviceGetEccMode(handle)[0]
+    def nvml_device_get_current_ecc_mode(self):
+        return self.nvmlDeviceGetEccMode(self.handle)[0]
 
     # added to API
-    def nvmlDeviceGetPendingEccMode(handle):
-        return nvmlDeviceGetEccMode(handle)[1]
+    def nvml_device_get_pending_ecc_mode(self):
+        return self.nvmlDeviceGetEccMode(self.handle)[1]
 
-    def nvmlDeviceGetTotalEccErrors(handle, errorType, counterType):
+    def nvml_device_get_total_ecc_errors(self, errorType:MemoryErrorType, counterType:EccCounterType):
         c_count = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetTotalEccErrors")
-        ret = fn(handle, MemoryErrorType.c_type(errorType),
-                 EcCounterType(counterType), byref(c_count))
+        ret = fn(self.handle, errorType.as_c_type(),
+                 counterType.as_c_type(), byref(c_count))
         Return.check(ret)
         return c_count.value
 
     # This is deprecated, instead use nvmlDeviceGetMemoryErrorCounter
-    def nvmlDeviceGetDetailedEccErrors(handle, errorType, counterType):
-        _counts = cEccErrorCounts()
+    def nvml_device_get_detailed_ecc_errors(self, errorType, counterType:EccCounterType):
+        c_counts = EccErrorCounts()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDetailedEccErrors")
-        ret = fn(handle, MemoryErrorType.c_type(errorType),
-                 EcCounterType(counterType), byref(c_counts))
+        ret = fn(self.handle, errorType.as_c_type(),
+                 counterType.as_c_type(), byref(c_counts))
         Return.check(ret)
         return c_counts
 
     # Added in 4.304
-    def nvmlDeviceGetMemoryErrorCounter(
-            handle,
-            errorType,
-            counterType,
-            locationType):
+    def nvml_device_get_memory_error_counter(handle, errorType, counterType, locationType):
         c_count = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetMemoryErrorCounter")
-        ret = fn(handle,
+        ret = fn(self.handle,
                  MemoryErrorType.c_type(errorType),
                  EcCounterType(counterType),
                  MemoryLoation(locationType),
@@ -728,66 +1055,66 @@ class Device(NvmlBase):
         Return.check(ret)
         return c_count.value
 
-    def nvmlDeviceGetUtilizationRates(handle):
-        _util = cUtilization()
+    def nvml_device_get_utilization_rates(self):
+        c_util = Utilization()
         fn = self.lib.get_function_pointer("nvmlDeviceGetUtilizationRates")
-        ret = fn(handle, byref(c_util))
+        ret = fn(self.handle, byref(c_util))
         Return.check(ret)
         return c_util
 
-    def nvmlDeviceGetEncoderUtilization(handle):
+    def nvml_device_get_encoder_utilization(self):
         c_util = c_uint()
         c_samplingPeriod = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetEncoderUtilization")
-        ret = fn(handle, byref(c_util), byref(c_samplingPeriod))
+        ret = fn(self.handle, byref(c_util), byref(c_samplingPeriod))
         Return.check(ret)
         return [c_util.value, c_samplingPeriod.value]
 
-    def nvmlDeviceGetDecoderUtilization(handle):
+    def nvml_device_get_decoder_utilization(self):
         c_util = c_uint()
         c_samplingPeriod = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDecoderUtilization")
-        ret = fn(handle, byref(c_util), byref(c_samplingPeriod))
+        ret = fn(self.handle, byref(c_util), byref(c_samplingPeriod))
         Return.check(ret)
         return [c_util.value, c_samplingPeriod.value]
 
-    def nvmlDeviceGetPcieReplayCounter(handle):
+    def nvml_device_get_pcie_replay_counter(self):
         c_replay = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPcieReplayCounter")
-        ret = fn(handle, byref(c_replay))
+        ret = fn(self.handle, byref(c_replay))
         Return.check(ret)
         return c_replay.value
 
-    def nvmlDeviceGetDriverModel(handle):
-        _currModel = DriverModel()
-        _pendingModel = DriverModel()
+    def nvml_device_get_driver_model(self):
+        c_currModel = DriverModel.c_type()
+        c_pendingModel = DriverModel.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDriverModel")
-        ret = fn(handle, byref(c_currModel), byref(c_pendingModel))
+        ret = fn(self.handle, byref(c_currModel), byref(c_pendingModel))
         Return.check(ret)
         return [c_currModel.value, c_pendingModel.value]
 
     # added to API
-    def nvmlDeviceGetCurrentDriverModel(handle):
-        return nvmlDeviceGetDriverModel(handle)[0]
+    def nvml_device_get_current_driver_model(self):
+        return self.nvmlDeviceGetDriverModel(self.handle)[0]
 
     # added to API
-    def nvmlDeviceGetPendingDriverModel(handle):
-        return nvmlDeviceGetDriverModel(handle)[1]
+    def nvml_device_get_pending_driver_model(self):
+        return self.nvmlDeviceGetDriverModel(self.handle)[1]
 
     # Added in 2.285
-    def nvmlDeviceGetVbiosVersion(handle):
-        c_version = create_string_buffer(DEVICE_VBIOS_VERSION_BUFFER_SIZE)
+    def nvml_device_get_vbios_version(self):
+        c_version = create_string_buffer(Device.VBIOS_VERSION_BUFFER_SIZE)
         fn = self.lib.get_function_pointer("nvmlDeviceGetVbiosVersion")
-        ret = fn(handle, c_version, c_uint(DEVICE_VBIOS_VERSION_BUFFER_SIZE))
+        ret = fn(self.handle, c_version, c_uint(Device.VBIOS_VERSION_BUFFER_SIZE))
         Return.check(ret)
         return c_version.value
 
     # Added in 2.285
-    def nvmlDeviceGetComputeRunningProcesses(handle):
+    def nvml_device_get_compute_running_processes(self):
         # first call to get the size
         c_count = c_uint(0)
         fn = self.lib.get_function_pointer("nvmlDeviceGetComputeRunningProcesses")
-        ret = fn(handle, byref(c_count), None)
+        ret = fn(self.handle, byref(c_count), None)
 
         if ret == Return.SUCCESS.value:
             # special case, no running processes
@@ -800,7 +1127,7 @@ class Device(NvmlBase):
             c_procs = proc_array()
 
             # make the call again
-            ret = fn(handle, byref(c_count), c_procs)
+            ret = fn(self.handle, byref(c_count), c_procs)
             Return.check(ret)
 
             procs = []
@@ -817,11 +1144,11 @@ class Device(NvmlBase):
             # error case
             raise NVMLError(ret)
 
-    def nvmlDeviceGetGraphicsRunningProcesses(handle):
+    def nvml_device_get_graphics_running_processes(self):
         # first call to get the size
         c_count = c_uint(0)
         fn = self.lib.get_function_pointer("nvmlDeviceGetGraphicsRunningProcesses")
-        ret = fn(handle, byref(c_count), None)
+        ret = fn(self.handle, byref(c_count), None)
 
         if ret == Return.SUCCESS.value:
             # special case, no running processes
@@ -834,7 +1161,7 @@ class Device(NvmlBase):
             c_procs = proc_array()
 
             # make the call again
-            ret = fn(handle, byref(c_count), c_procs)
+            ret = fn(self.handle, byref(c_count), c_procs)
             Return.check(ret)
 
             procs = []
@@ -851,121 +1178,67 @@ class Device(NvmlBase):
             # error case
             raise NVMLError(ret)
 
-    def nvmlDeviceGetAutoBoostedClocksEnabled(handle):
-        _isEnabled = EnableState()
-        _defaultIsEnabled = EnableState()
+    def nvml_device_get_auto_boosted_clocks_enabled(self):
+        c_isEnabled = EnableState.c_type()
+        c_defaultIsEnabled = EnableState.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetAutoBoostedClocksEnabled")
-        ret = fn(handle, byref(c_isEnabled), byref(c_defaultIsEnabled))
+        ret = fn(self.handle, byref(c_isEnabled), byref(c_defaultIsEnabled))
         Return.check(ret)
         return [c_isEnabled.value, c_defaultIsEnabled.value]
         # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto
         # boosted clocks
 
-    # Set functions
-    def nvmlUnitSetLedState(unit, color):
-        fn = self.lib.get_function_pointer("nvmlUnitSetLedState")
-        ret = fn(unit, Ledolor(color))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceSetPersistenceMode(handle, mode):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetPersistenceMode")
-        ret = fn(handle, EnableState.c_type(mode))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceSetComputeMode(handle, mode):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetComputeMode")
-        ret = fn(handle, omputeMode(mode))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceSetEccMode(handle, mode):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetEccMode")
-        ret = fn(handle, EnableState.c_type(mode))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceClearEccErrorCounts(handle, counterType):
-        fn = self.lib.get_function_pointer("nvmlDeviceClearEccErrorCounts")
-        ret = fn(handle, EcCounterType(counterType))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceSetDriverModel(handle, model):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetDriverModel")
-        ret = fn(handle, DriverModel.c_type(model))
-        Return.check(ret)
-        return None
-
-    def nvmlDeviceSetAutoBoostedClocksEnabled(handle, enabled):
+    def nvml_device_set_auto_boosted_clocks_enabled(self, enabled: EnableState):
         fn = self.lib.get_function_pointer("nvmlDeviceSetAutoBoostedClocksEnabled")
-        ret = fn(handle, EnableState.c_type(enabled))
+        ret = fn(self.handle, enabled.as_c_type())
         Return.check(ret)
         return None
         # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto
         # boosted clocks
 
-    def nvmlDeviceSetDefaultAutoBoostedClocksEnabled(handle, enabled, flags):
+    def nvml_device_set_default_auto_boosted_clocks_enabled(self, enabled, flags):
         fn = self.lib.get_function_pointer(
             "nvmlDeviceSetDefaultAutoBoostedClocksEnabled")
-        ret = fn(handle, EnableState.c_type(enabled), c_uint(flags))
+        ret = fn(self.handle, enabled.as_c_type(), c_uint(flags))
         Return.check(ret)
         return None
         # Throws     ERROR_NOT_SUPPORTED if hardware doesn't support setting auto
         # boosted clocks
 
-    # Added in 4.304
-    def nvmlDeviceSetApplicationsClocks(handle, maxMemClockMHz, maxGraphicsClockMHz):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetApplicationsClocks")
-        ret = fn(handle, c_uint(maxMemClockMHz), c_uint(maxGraphicsClockMHz))
-        Return.check(ret)
-        return None
+
 
     # Added in 4.304
-    def nvmlDeviceResetApplicationsClocks(handle):
+    def nvml_device_reset_applications_clocks(self):
         fn = self.lib.get_function_pointer("nvmlDeviceResetApplicationsClocks")
-        ret = fn(handle)
+        ret = fn(self.handle)
         Return.check(ret)
         return None
 
-    # Added in 4.304
-    def nvmlDeviceSetPowerManagementLimit(handle, limit):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetPowerManagementLimit")
-        ret = fn(handle, c_uint(limit))
-        Return.check(ret)
-        return None
 
-    # Added in 4.304
-    def nvmlDeviceSetGpuOperationMode(handle, mode):
-        fn = self.lib.get_function_pointer("nvmlDeviceSetGpuOperationMode")
-        ret = fn(handle, GpuOperationMode.c_type(mode))
-        Return.check(ret)
-        return None
+
+
 
     # Added in 2.285
-    def nvmlEventSetCreate():
-        fn = self.lib.get_function_pointer("nvmlEventSetCreate")
-        eventSet = EventType.C_TYPE()
-        ret = fn(byref(eventSet))
-        Return.check(ret)
-        return eventSet
-
-    # Added in 2.285
-    def nvmlDeviceRegisterEvents(handle, eventTypes, eventSet):
+    def nvml_device_register_events(self, event_types, event_set):
         fn = self.lib.get_function_pointer("nvmlDeviceRegisterEvents")
-        ret = fn(handle, c_ulonglong(eventTypes), eventSet)
+        ret = fn(self.handle, c_ulonglong(event_types), event_set)
         Return.check(ret)
         return None
 
     # Added in 2.285
-    def nvmlDeviceGetSupportedEventTypes(handle):
+    def nvml_device_get_supported_event_types(self):
         c_eventTypes = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedEventTypes")
-        ret = fn(handle, byref(c_eventTypes))
+        ret = fn(self.handle, byref(c_eventTypes))
         Return.check(ret)
         return c_eventTypes.value
 
+# Set functions
+def nvmlUnitSetLedState(unit, color):
+    fn = self.lib.get_function_pointer("nvmlUnitSetLedState")
+    ret = fn(unit, Ledolor(color))
+    Return.check(ret)
+    return None
 
 # Added in 2.285
 # raises     ERROR_TIMEOUT exception on timeout
@@ -976,6 +1249,13 @@ def nvmlEventSetWait(eventSet, timeoutms):
     Return.check(ret)
     return data
 
+# Added in 2.285
+def nvmlEventSetCreate():
+    fn = self.lib.get_function_pointer("nvmlEventSetCreate")
+    eventSet = EventType.C_TYPE()
+    ret = fn(byref(eventSet))
+    Return.check(ret)
+    return eventSet
 
 # Added in 2.285
 def nvmlEventSetFree(eventSet):
@@ -989,101 +1269,101 @@ def nvmlEventSetFree(eventSet):
 def nvmlDeviceOnSameBoard(handle1, handle2):
     fn = self.lib.get_function_pointer("nvmlDeviceOnSameBoard")
     onSameBoard = c_int()
-    ret = fn(handle1, handle2, byref(onSameBoard))
+    ret = fn(self.handle1, handle2, byref(onSameBoard))
     Return.check(ret)
     return (onSameBoard.value != 0)
 
 
 # Added in 3.295
-def nvmlDeviceGetCurrPcieLinkGeneration(handle):
+def nvmlDeviceGetCurrPcieLinkGeneration(self):
     fn = self.lib.get_function_pointer("nvmlDeviceGetCurrPcieLinkGeneration")
     gen = c_uint()
-    ret = fn(handle, byref(gen))
+    ret = fn(self.handle, byref(gen))
     Return.check(ret)
     return gen.value
 
 
 # Added in 3.295
-def nvmlDeviceGetMaxPcieLinkGeneration(handle):
+def nvmlDeviceGetMaxPcieLinkGeneration(self):
     fn = self.lib.get_function_pointer("nvmlDeviceGetMaxPcieLinkGeneration")
     gen = c_uint()
-    ret = fn(handle, byref(gen))
+    ret = fn(self.handle, byref(gen))
     Return.check(ret)
     return gen.value
 
 
 # Added in 3.295
-def nvmlDeviceGetCurrPcieLinkWidth(handle):
+def nvmlDeviceGetCurrPcieLinkWidth(self):
     fn = self.lib.get_function_pointer("nvmlDeviceGetCurrPcieLinkWidth")
     width = c_uint()
-    ret = fn(handle, byref(width))
+    ret = fn(self.handle, byref(width))
     Return.check(ret)
     return width.value
 
 
 # Added in 3.295
-def nvmlDeviceGetMaxPcieLinkWidth(handle):
+def nvmlDeviceGetMaxPcieLinkWidth(self):
     fn = self.lib.get_function_pointer("nvmlDeviceGetMaxPcieLinkWidth")
     width = c_uint()
-    ret = fn(handle, byref(width))
+    ret = fn(self.handle, byref(width))
     Return.check(ret)
     return width.value
 
 
 # Added in 4.304
-def nvmlDeviceGetSupportedClocksThrottleReasons(handle):
+def nvmlDeviceGetSupportedClocksThrottleReasons(self):
     c_reasons = c_ulonglong()
     fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedClocksThrottleReasons")
-    ret = fn(handle, byref(c_reasons))
+    ret = fn(self.handle, byref(c_reasons))
     Return.check(ret)
     return c_reasons.value
 
 
 # Added in 4.304
-def nvmlDeviceGetCurrentClocksThrottleReasons(handle):
+def nvmlDeviceGetCurrentClocksThrottleReasons(self):
     c_reasons = c_ulonglong()
     fn = self.lib.get_function_pointer("nvmlDeviceGetCurrentClocksThrottleReasons")
-    ret = fn(handle, byref(c_reasons))
+    ret = fn(self.handle, byref(c_reasons))
     Return.check(ret)
     return c_reasons.value
 
 
 # Added in 5.319
-def nvmlDeviceGetIndex(handle):
+def nvmlDeviceGetIndex(self):
     fn = self.lib.get_function_pointer("nvmlDeviceGetIndex")
     c_index = c_uint()
-    ret = fn(handle, byref(c_index))
+    ret = fn(self.handle, byref(c_index))
     Return.check(ret)
     return c_index.value
 
 
 # Added in 5.319
-def nvmlDeviceGetAccountingMode(handle):
+def nvmlDeviceGetAccountingMode(self):
     _mode = EnableState()
     fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingMode")
-    ret = fn(handle, byref(c_mode))
+    ret = fn(self.handle, byref(c_mode))
     Return.check(ret)
     return c_mode.value
 
 
-def nvmlDeviceSetAccountingMode(handle, mode):
+def nvmlDeviceSetAccountingMode(self, mode):
     fn = self.lib.get_function_pointer("nvmlDeviceSetAccountingMode")
-    ret = fn(handle, EnableState.c_type(mode))
+    ret = fn(self.handle, EnableState.c_type(mode))
     Return.check(ret)
     return None
 
 
-def nvmlDeviceClearAccountingPids(handle):
+def nvmlDeviceClearAccountingPids(self):
     fn = self.lib.get_function_pointer("nvmlDeviceClearAccountingPids")
-    ret = fn(handle)
+    ret = fn(self.handle)
     Return.check(ret)
     return None
 
 
-def nvmlDeviceGetAccountingStats(handle, pid):
+def nvmlDeviceGetAccountingStats(self, pid):
     stats = AccountingStats()
     fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingStats")
-    ret = fn(handle, c_uint(pid), byref(stats))
+    ret = fn(self.handle, c_uint(pid), byref(stats))
     Return.check(ret)
     if (stats.maxMemoryUsage == VALUE_NOT_AVAILABLE_ulonglong):
         # special case for WDDM on Windows, see comment above
@@ -1091,19 +1371,19 @@ def nvmlDeviceGetAccountingStats(handle, pid):
     return stats
 
 
-def nvmlDeviceGetAccountingPids(handle):
+def nvmlDeviceGetAccountingPids(self):
     count = c_uint(nvmlDeviceGetAccountingBufferSize(handle))
     pids = (c_uint * count.value)()
     fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingPids")
-    ret = fn(handle, byref(count), pids)
+    ret = fn(self.handle, byref(count), pids)
     Return.check(ret)
     return map(int, pids[0:count.value])
 
 
-def nvmlDeviceGetAccountingBufferSize(handle):
+def nvmlDeviceGetAccountingBufferSize(self):
     bufferSize = c_uint()
     fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingBufferSize")
-    ret = fn(handle, byref(bufferSize))
+    ret = fn(self.handle, byref(bufferSize))
     Return.check(ret)
     return int(bufferSize.value)
 
@@ -1147,19 +1427,10 @@ def nvmlDeviceGetAPIRestriction(device, apiType):
     Return.check(ret)
     return int(c_permission.value)
 
-
-def nvmlDeviceSetAPIRestriction(handle, apiType, isRestricted):
-    fn = self.lib.get_function_pointer("nvmlDeviceSetAPIRestriction")
-    ret = fn(handle, RestrictedAPI_t(apiType),
-             EnableState.YPE(isRestricted))
-    Return.check(ret)
-    return None
-
-
-def nvmlDeviceGetBridgeChipInfo(handle):
+def nvmlDeviceGetBridgeChipInfo(self):
     bridgeHierarhy = cBridgeChipHierarchy()
     fn = self.lib.get_function_pointer("nvmlDeviceGetBridgeChipInfo")
-    ret = fn(handle, byref(bridgeHierarchy))
+    ret = fn(self.handle, byref(bridgeHierarchy))
     Return.check(ret)
     return bridgeHierarchy
 
@@ -1258,3 +1529,137 @@ def nvmlDeviceGetTopologyCommonAncestor(device1, device2):
     ret = fn(device1, device2, byref(c_level))
     Return.check(ret)
     return c_level.value
+
+
+#################################
+#        NvLink Methods         #
+#################################
+
+
+class NvLink:
+    def __init__(self, device, link_id):
+        self.device = device
+        self.link = link_id
+
+    def freeze_nv_link_utilization_counter(self, counter: int, freeze: EnableState) -> None:
+        """
+        Freeze the NVLINK utilization counters Both the receive and transmit counters are operated on by this function
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param counter: Specifies the counter that should be frozen (0 or 1).
+        @type counter: int
+        @param freeze: NVML_FEATURE_ENABLED = freeze the receive and transmit counters
+            NVML_FEATURE_DISABLED = unfreeze the receive and transmit counters
+        @type freeze: EnableState
+        @return: None
+        @rtype: None
+        """
+        fn = self.device.lib.get_function_pointer("nvmlDeviceFreezeNvLinkUtilizationCounter")
+        ret = fn(self.device.handle, c_uint(self.link), c_uint(counter), freeze.as_c_type())
+        Return.check(ret)
+
+    def get_nv_link_capability(self, link: int, capability: NvLinkCapability) -> bool:
+        """
+        Retrieves the requested capability from the device's NvLink for the link specified.
+        Please refer to the nvmlNvLinkCapability_t structure for the specific caps that can be queried.
+        The return value should be treated as a boolean.
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param capability: Specifies the nvmlNvLinkCapability_t to be queried
+        @type capability: NvLinkCapability
+        @return: A boolean for the queried capability indicating that feature is available
+        @rtype: bool
+        """
+        cap_result = c_uint()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkCapability")
+        ret = fn(self.handle, c_uint(link), capability.as_c_type(), byref(cap_result))
+        Return.check(ret)
+        return bool(cap_result.value)
+
+    def get_nv_link_error_counter(self, link: int, counter: NvLinkErrorCounter) -> int:
+        """ Retrieves the specified error counter value.
+        Please refer to nvmlNvLinkErrorCounter_t for error counters that are available
+
+        PASCAL_OR_NEWER
+        @return: error counter value
+        @rtype: int
+        """
+        counter_value = c_ulonglong()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkErrorCounter")
+        ret = fn(self.handle, c_uint(link), counter.as_c_type(), byref(counter_value))
+        Return.check(ret)
+        return counter_value.value
+
+    def nvmlDeviceGetNvLinkRemotePciInfo(self, link: int) -> PciInfo:
+        """Retrieves the PCI information for the remote node on a NvLink link
+        Note: pciSubSystemId is not filled in this function and is indeterminate
+
+        PASCAL_OR_NEWER"""
+        pci_info = PciInfo()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkRemotePciInfo")
+        ret = fn(self.handle, c_uint(link), byref(pci_info))
+        Return.check(ret)
+        return pci_info
+
+    def nvmlDeviceGetNvLinkState(self, link: int) -> EnableState:
+        """Retrieves the state of the device's NvLink for the link specified
+
+        PASCAL_OR_NEWER"""
+        is_active = EnableState.c_type()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkState")
+        ret = fn(self.handle, c_uint(link), byref(is_active))
+        Return.check(ret)
+        return EnableState(is_active.value)
+
+    def nvmlDeviceGetNvLinkUtilizationControl(self, link: int, counter: int) -> NvLinkUtilizationControl:
+        """Get the NVLINK utilization counter control information for the specified counter, 0 or 1.
+        Please refer to nvmlNvLinkUtilizationControl_t for the structure definition.
+
+        PASCAL_OR_NEWER
+        @param link: Specifies the NvLink link to be queried
+        @type link: int
+        @param counter: Specifies the counter that should be set (0 or 1).
+        @type counter: int
+        @return: NvLink utilization counter control information for the specified counter
+        @rtype: NvLinkUtilizationControl
+        """
+
+        control = NvLinkUtilizationControl()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkUtilizationControl")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(control))
+        Return.check(ret)
+        return control
+
+    def nvmlDeviceGetNvLinkUtilizationCounter(self, link: int, counter: int):
+        rx_counter, tx_counter = c_ulonglong(), c_ulonglong()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkUtilizationCounter")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(rx_counter), byref(tx_counter))
+        Return.check(ret)
+        return rx_counter.value, tx_counter.value
+
+    def nvmlDeviceGetNvLinkVersion(self, link: int) -> int:
+        version = c_uint()
+        fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkVersion")
+        ret = fn(self.handle, c_uint(link), byref(version))
+        Return.check(ret)
+        return version.value
+
+    def nvmlDeviceResetNvLinkErrorCounters(self, link: int):
+        fn = self.lib.get_function_pointer("nvmlDeviceResetNvLinkErrorCounters")
+        ret = fn(self.handle, c_uint(link))
+        Return.check(ret)
+
+    def nvmlDeviceResetNvLinkUtilizationCounter(self, link: int, counter: int):
+        fn = self.lib.get_function_pointer("nvmlDeviceResetNvLinkUtilizationCounter")
+        ret = fn(self.handle, c_uint(link), c_uint(counter))
+        Return.check(ret)
+
+    def nvmlDeviceSetNvLinkUtilizationControl(self, link: int, counter: int,
+                                              control: NvLinkUtilizationControl, reset: bool):
+        fn = self.lib.get_function_pointer("nvmlDeviceSetNvLinkUtilizationControl")
+        ret = fn(self.handle, c_uint(link), c_uint(counter), byref(control), c_uint(reset))
+        Return.check(ret)
