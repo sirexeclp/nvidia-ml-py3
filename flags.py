@@ -1,25 +1,30 @@
-from ctypes import POINTER
+from ctypes import POINTER, c_ulonglong
 from enum import IntFlag
 
 from structs import CEventSet
 
 
 class EventType(IntFlag):
+    """Event Types which user can be notified about."""
     @property
     def C_TYPE(self):
         """ Must be a Property, because Enum Subclasses can't define members."""
         return POINTER(CEventSet)
 
+    def as_c_type(self):
+        """Get c type representation."""
+        return c_ulonglong(self.value)
+
     NONE = 0
     SingleBitEccError = 1
     DoubleBitEccError = 2
-    P = 4
+    PState = 4
     XidCriticalError = 8
     Clock = 16
     All = (NONE |
            SingleBitEccError |
            DoubleBitEccError |
-           P |
+           PState |
            Clock |
            XidCriticalError)
 

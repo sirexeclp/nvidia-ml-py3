@@ -1,14 +1,14 @@
 import string
-from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER, byref
+from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER, byref, c_longlong
 
 from enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuState, PcieLinkState, \
-    NvLinkUtilizationCountUnits, NvLinkUtilizationCountPktTypes
-
+    NvLinkUtilizationCountUnits, NvLinkUtilizationCountPktTypes, ValueType, FieldId
 
 # Alternative object
 # Allows the object to be printed
 # Allows mismatched types to be assigned
 #  - like None when the Structure variant requires c_uint
+from errors import Return
 
 
 class FriendlyObject(object):
@@ -89,6 +89,9 @@ CDevicePointer = POINTER(CDevice)
 
 class CEventSet(Structure):
     pass  # opaque handle
+
+
+CEventSetPointer = POINTER(CEventSet)
 
 
 class UnitInfo(PrintableStructure):
@@ -306,6 +309,9 @@ class Value(Union):
         ('ullVal', c_ulonglong),
     ]
 
+    def get_value(self, value_type):  # ValueType
+        return value_type.extract_value(self)
+
 
 class Sample(PrintableStructure):
     _fields_ = [
@@ -359,4 +365,27 @@ class NvLinkUtilizationControl(PrintableStructure):
     _fields_ = [
         ('units', NvLinkUtilizationCountUnits.c_type),
         ('pktfilter', NvLinkUtilizationCountPktTypes.c_type)
+    ]
+
+
+class FieldValue(PrintableStructure):
+    """Information for a Field Value Sample"""
+    _fields_ = [
+        # ID of the NVML field to retrieve. This must be set before any call that uses this struct.
+        # See the constants starting with NVML_FI_ above.
+        ("fieldId", FieldId.c_type),
+        # Currently unused. This should be initialized to 0 by the caller before any API call
+        ("unused", c_uint),
+        # CPU Timestamp of this value in microseconds since 1970
+        ("timestamp", c_longlong),
+        # How long this field value took to update (in usec) within NVML.
+        # This may be averaged across several fields that are serviced by the same driver call.
+        ("latencyUsec", c_longlong),
+        # Type of the value stored in value
+        ("valueType", ValueType.c_type),
+        # Return code for retrieving this value. This must be checked before looking at value,
+        # as value is undefined if nvmlReturn != NVML_SUCCESS
+        ("nvmlReturn", Return.c_type),
+        # Value for this field. This is only valid if nvmlReturn == NVML_SUCCESS
+        ("value", Value)
     ]

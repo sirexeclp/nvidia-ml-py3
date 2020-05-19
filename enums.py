@@ -168,12 +168,12 @@ class ValueType(UIntEnum):
     UNSIGNED_LONG_LONG = 3
 
     def extract_value(self, union):
-        sample_value = union.sampleValue
+        sample_value = union
         mapping = {
             ValueType.DOUBLE: sample_value.dVal,
-            ValueType.U_INT: sample_value.uiVal,
-            ValueType.U_LONG: sample_value.ulVal,
-            ValueType.U_LONG_LONG: sample_value.ullVal
+            ValueType.UNSIGNED_INT: sample_value.uiVal,
+            ValueType.UNSIGNED_LONG: sample_value.ulVal,
+            ValueType.UNSIGNED_LONG_LONG: sample_value.ullVal
         }
         return mapping[self]
 
@@ -301,3 +301,233 @@ class PerfPolicyType(UIntEnum):
     TOTAL_APP_CLOCKS = 10
     # Total time the GPU was held below base clocks.
     TOTAL_BASE_CLOCKS = 11
+
+
+#( *)([\w_]*) *([0-9]+) *//!< (\w.*)
+#    #$4\n    $2 = $3
+
+class FieldId(UIntEnum):
+    """Field Identifiers.
+    All Identifiers pertain to a device.
+    Each ID is only used once and is guaranteed never to change.
+    """
+
+    # Current ECC mode. 1=Active. 0=Inactive
+    ECC_CURRENT = 1
+    # Pending ECC mode. 1=Active. 0=Inactive
+    ECC_PENDING = 2
+    
+    """ECC Count Totals"""
+    # Total single bit volatile ECC errors
+    ECC_SBE_VOL_TOTAL = 3
+    # Total double bit volatile ECC errors
+    ECC_DBE_VOL_TOTAL = 4
+    # Total single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_TOTAL = 5
+    # Total double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_TOTAL = 6
+    
+    """Individual ECC locations"""
+    # L1 cache single bit volatile ECC errors
+    ECC_SBE_VOL_L1 = 7
+    # L1 cache double bit volatile ECC errors
+    ECC_DBE_VOL_L1 = 8
+    # L2 cache single bit volatile ECC errors
+    ECC_SBE_VOL_L2 = 9
+    # L2 cache double bit volatile ECC errors
+    ECC_DBE_VOL_L2 = 10
+    # Device memory single bit volatile ECC errors
+    ECC_SBE_VOL_DEV = 11
+    # Device memory double bit volatile ECC errors
+    ECC_DBE_VOL_DEV = 12
+    # Register file single bit volatile ECC errors
+    ECC_SBE_VOL_REG = 13
+    # Register file double bit volatile ECC errors
+    ECC_DBE_VOL_REG = 14
+    # Texture memory single bit volatile ECC errors
+    ECC_SBE_VOL_TEX = 15
+    # Texture memory double bit volatile ECC errors
+    ECC_DBE_VOL_TEX = 16
+    # CBU double bit volatile ECC errors
+    ECC_DBE_VOL_CBU = 17
+    # L1 cache single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_L1 = 18
+    # L1 cache double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_L1 = 19
+    # L2 cache single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_L2 = 20
+    # L2 cache double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_L2 = 21
+    # Device memory single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_DEV = 22
+    # Device memory double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_DEV = 23
+    # Register File single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_REG = 24
+    # Register File double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_REG = 25
+    # Texture memory single bit aggregate (persistent) ECC errors
+    ECC_SBE_AGG_TEX = 26
+    # Texture memory double bit aggregate (persistent) ECC errors
+    ECC_DBE_AGG_TEX = 27
+    # CBU double bit aggregate ECC errors
+    ECC_DBE_AGG_CBU = 28
+
+    """Page Retirement"""
+    # Number of retired pages because of single bit errors
+    RETIRED_SBE = 29
+    # Number of retired pages because of double bit errors
+    RETIRED_DBE = 30
+    # If any pages are pending retirement. 1=yes. 0=no.
+    RETIRED_PENDING = 31
+
+    """NvLink Flit Error Counters"""
+    # NVLink flow control CRC  Error Counter for Lane 0
+    NVLINK_CRC_FLIT_ERROR_COUNT_L0 = 32
+    # NVLink flow control CRC  Error Counter for Lane 1
+    NVLINK_CRC_FLIT_ERROR_COUNT_L1 = 33
+    # NVLink flow control CRC  Error Counter for Lane 2
+    NVLINK_CRC_FLIT_ERROR_COUNT_L2 = 34
+    # NVLink flow control CRC  Error Counter for Lane 3
+    NVLINK_CRC_FLIT_ERROR_COUNT_L3 = 35
+    # NVLink flow control CRC  Error Counter for Lane 4
+    NVLINK_CRC_FLIT_ERROR_COUNT_L4 = 36
+    # NVLink flow control CRC  Error Counter for Lane 5
+    NVLINK_CRC_FLIT_ERROR_COUNT_L5 = 37
+    # NVLink flow control CRC  Error Counter total for all Lanes
+    NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL = 38
+
+    """NvLink CRC Data Error Counters"""
+    # NVLink data CRC Error Counter for Lane 0
+    NVLINK_CRC_DATA_ERROR_COUNT_L0 = 39
+    # NVLink data CRC Error Counter for Lane 1
+    NVLINK_CRC_DATA_ERROR_COUNT_L1 = 40
+    # NVLink data CRC Error Counter for Lane 2
+    NVLINK_CRC_DATA_ERROR_COUNT_L2 = 41
+    # NVLink data CRC Error Counter for Lane 3
+    NVLINK_CRC_DATA_ERROR_COUNT_L3 = 42
+    # NVLink data CRC Error Counter for Lane 4
+    NVLINK_CRC_DATA_ERROR_COUNT_L4 = 43
+    # NVLink data CRC Error Counter for Lane 5
+    NVLINK_CRC_DATA_ERROR_COUNT_L5 = 44
+    # NvLink data CRC Error Counter total for all Lanes
+    NVLINK_CRC_DATA_ERROR_COUNT_TOTAL = 45
+
+    """NvLink Replay Error Counters"""
+    # NVLink Replay Error Counter for Lane 0
+    NVLINK_REPLAY_ERROR_COUNT_L0 = 46
+    # NVLink Replay Error Counter for Lane 1
+    NVLINK_REPLAY_ERROR_COUNT_L1 = 47
+    # NVLink Replay Error Counter for Lane 2
+    NVLINK_REPLAY_ERROR_COUNT_L2 = 48
+    # NVLink Replay Error Counter for Lane 3
+    NVLINK_REPLAY_ERROR_COUNT_L3 = 49
+    # NVLink Replay Error Counter for Lane 4
+    NVLINK_REPLAY_ERROR_COUNT_L4 = 50
+    # NVLink Replay Error Counter for Lane 5
+    NVLINK_REPLAY_ERROR_COUNT_L5 = 51
+    # NVLink Replay Error Counter total for all Lanes
+    NVLINK_REPLAY_ERROR_COUNT_TOTAL = 52
+
+    """NvLink Recovery Error Counters"""
+    # NVLink Recovery Error Counter for Lane 0
+    NVLINK_RECOVERY_ERROR_COUNT_L0 = 53
+    # NVLink Recovery Error Counter for Lane 1
+    NVLINK_RECOVERY_ERROR_COUNT_L1 = 54
+    # NVLink Recovery Error Counter for Lane 2
+    NVLINK_RECOVERY_ERROR_COUNT_L2 = 55
+    # NVLink Recovery Error Counter for Lane 3
+    NVLINK_RECOVERY_ERROR_COUNT_L3 = 56
+    # NVLink Recovery Error Counter for Lane 4
+    NVLINK_RECOVERY_ERROR_COUNT_L4 = 57
+    # NVLink Recovery Error Counter for Lane 5
+    NVLINK_RECOVERY_ERROR_COUNT_L5 = 58
+    # NVLink Recovery Error Counter total for all Lanes
+    NVLINK_RECOVERY_ERROR_COUNT_TOTAL = 59
+
+    """NvLink Bandwidth Counters"""
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 0
+    NVLINK_BANDWIDTH_C0_L0 = 60
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 1
+    NVLINK_BANDWIDTH_C0_L1 = 61
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 2
+    NVLINK_BANDWIDTH_C0_L2 = 62
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 3
+    NVLINK_BANDWIDTH_C0_L3 = 63
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 4
+    NVLINK_BANDWIDTH_C0_L4 = 64
+    # NVLink Bandwidth Counter for Counter Set 0, Lane 5
+    NVLINK_BANDWIDTH_C0_L5 = 65
+    # NVLink Bandwidth Counter Total for Counter Set 0, All Lanes
+    NVLINK_BANDWIDTH_C0_TOTAL = 66
+
+    """NvLink Bandwidth Counters"""
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 0
+    NVLINK_BANDWIDTH_C1_L0 = 67
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 1
+    NVLINK_BANDWIDTH_C1_L1 = 68
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 2
+    NVLINK_BANDWIDTH_C1_L2 = 69
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 3
+    NVLINK_BANDWIDTH_C1_L3 = 70
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 4
+    NVLINK_BANDWIDTH_C1_L4 = 71
+    # NVLink Bandwidth Counter for Counter Set 1, Lane 5
+    NVLINK_BANDWIDTH_C1_L5 = 72
+    # NVLink Bandwidth Counter Total for Counter Set 1, All Lanes
+    NVLINK_BANDWIDTH_C1_TOTAL = 73
+
+    """NVML Perf Policy Counters"""
+    # Perf Policy Counter for Power Policy
+    PERF_POLICY_POWER = 74
+    # Perf Policy Counter for Thermal Policy
+    PERF_POLICY_THERMAL = 75
+    # Perf Policy Counter for Sync boost Policy
+    PERF_POLICY_SYNC_BOOST = 76
+    # Perf Policy Counter for Board Limit
+    PERF_POLICY_BOARD_LIMIT = 77
+    # Perf Policy Counter for Low GPU Utilization Policy
+    PERF_POLICY_LOW_UTILIZATION = 78
+    # Perf Policy Counter for Reliability Policy
+    PERF_POLICY_RELIABILITY = 79
+    # Perf Policy Counter for Total App Clock Policy
+    PERF_POLICY_TOTAL_APP_CLOCKS = 80
+    # Perf Policy Counter for Total Base Clocks Policy
+    PERF_POLICY_TOTAL_BASE_CLOCKS = 81
+
+    """Memory temperatures"""
+    # Memory temperature for the device
+    MEMORY_TEMP = 82
+
+    """Energy Counter"""
+    # Total energy consumption for the GPU in mJ since the driver was last reloaded
+    TOTAL_ENERGY_CONSUMPTION = 83
+
+    """NVLink Speed"""
+    # NVLink Speed in MBps for Link 0
+    NVLINK_SPEED_MBPS_L0 = 84
+    # NVLink Speed in MBps for Link 1
+    NVLINK_SPEED_MBPS_L1 = 85
+    # NVLink Speed in MBps for Link 2
+    NVLINK_SPEED_MBPS_L2 = 86
+    # NVLink Speed in MBps for Link 3
+    NVLINK_SPEED_MBPS_L3 = 87
+    # NVLink Speed in MBps for Link 4
+    NVLINK_SPEED_MBPS_L4 = 88
+    # NVLink Speed in MBps for Link 5
+    NVLINK_SPEED_MBPS_L5 = 89
+    # Common NVLink Speed in MBps for active links
+    NVLINK_SPEED_MBPS_COMMON = 90
+
+    # Number of NVLinks present on the device
+    NVLINK_LINK_COUNT = 91
+
+    # If any pages are pending retirement due to SBE. 1=yes. 0=no.
+    RETIRED_PENDING_SBE = 92
+    # If any pages are pending retirement due to DBE. 1=yes. 0=no.
+    RETIRED_PENDING_DBE = 93
+
+    # PCIe replay counter
+    PCIE_REPLAY_COUNTER = 94
+    # PCIe replay rollover counter
+    PCIE_REPLAY_ROLLOVER_COUNTER = 95
