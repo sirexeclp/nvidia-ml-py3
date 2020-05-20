@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 
 from pynvml import Device, NVMLLib, InfoRom, EnableState, PciInfo, NvLinkCapability, FieldValue, Value, ValueType, \
-    FieldId, System, EventType
+    FieldId, System, EventType, Unit
 
 
 class TestDevice(TestCase):
@@ -65,4 +65,7 @@ class TestDevice(TestCase):
             # data = events.wait(1_000)
             # print("data", data.eventData)
             # print("fan-speed", device.get_fan_speed())
-            print(device.get_supported_memory_clocks())
+            # print(device.get_supported_memory_clocks())
+            #print("Unitcount", Unit.get_count())
+            #print("unitcount", Unit(0).get_psu_info())
+            print("aff", device.get_cpu_affinity())
