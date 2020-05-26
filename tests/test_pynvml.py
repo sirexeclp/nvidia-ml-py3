@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from unittest import TestCase
 
-from pynvml import Device, NVMLLib, InfoRom, EnableState, PciInfo, NvLinkCapability, FieldValue, Value, ValueType, \
-    FieldId, System, EventType, Unit
+from pynvml import NVMLLib
+from system import System
+from device import Device
 
 
 class TestDevice(TestCase):
@@ -68,4 +69,4 @@ class TestDevice(TestCase):
             # print(device.get_supported_memory_clocks())
             #print("Unitcount", Unit.get_count())
             #print("unitcount", Unit(0).get_psu_info())
-            print("aff", device.get_cpu_affinity())
+            print("aff", [bin(x) for x in device.get_cpu_affinity()])
