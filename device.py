@@ -214,14 +214,9 @@ class Device(NvmlBase):
         """
         @summary: Resets the gpu clock to the default value
         This is the gpu clock that will be used after system reboot or driver reload.
-        Default values are idle clocks, but the current values can be changed using nvmlDeviceSetApplicationsClocks.
-
-        See also:
-        nvmlDeviceSetGpuLockedClocks
-
+        Default values are idle clocks, but the current values can be changed using
+        nvmlDeviceSetApplicationsClocks.
         VOLTA_OR_NEWER
-        @return:
-        @rtype:
         """
         fn = self.lib.get_function_pointer("nvmlDeviceResetGpuLockedClocks")
         ret = fn(self.handle)
@@ -257,22 +252,19 @@ class Device(NvmlBase):
     def set_gpu_locked_clocks(self, min_gpu_clock_mhz: int, max_gpu_clock_mhz: int) -> None:
         """
         Set clocks that device will lock to.
-
-        Sets the clocks that the device will be running at to the value in the range of minGpuClockMHz to maxGpuClockMHz. Setting this will supercede application clock values and take effect regardless if a cuda app is running. See /ref nvmlDeviceSetApplicationsClocks
-
+        Sets the clocks that the device will be running at to the value in the range of minGpuClockMHz
+        to maxGpuClockMHz. Setting this will supercede application clock values and
+        take effect regardless if a cuda app is running. See /ref nvmlDeviceSetApplicationsClocks
         Can be used as a setting to request constant performance.
-
         Requires root/admin permissions.
-
-        After system reboot or driver reload applications clocks go back to their default value. See nvmlDeviceResetGpuLockedClocks.
+        After system reboot or driver reload applications clocks go back to their default value.
+        See nvmlDeviceResetGpuLockedClocks.
 
         VOLTA_OR_NEWER
-        @param min_gpu_clock_mhz:
-        @type min_gpu_clock_mhz:
-        @param max_gpu_clock_mhz:
-        @type max_gpu_clock_mhz:
-        @return:
-        @rtype:
+        @param min_gpu_clock_mhz: minimum gpu clock in MHz
+        @type min_gpu_clock_mhz: int
+        @param max_gpu_clock_mhz: maximum gpu clock in MHz
+        @type max_gpu_clock_mhz: int
         """
         fn = self.lib.get_function_pointer("nvmlDeviceSetGpuLockedClocks")
         ret = fn(self.handle, c_uint(min_gpu_clock_mhz), c_uint(max_gpu_clock_mhz))
@@ -1196,7 +1188,7 @@ class PowerLimit:
         print(f"Reset power-limit to default value ({self.default_value}).")
 
 
-class ClockLimit:
+class ApplicationClockLimit:
     """A class to manage clock-limits in a nice way."""
 
     def __init__(self, device: Device, mem_clock: int, sm_clock: int, set_default: bool = True):
@@ -1212,7 +1204,7 @@ class ClockLimit:
             self.default_mem_clock = self.device.get_applications_clock(ClockType.MEM)
             self.default_sm_clock = self.device.get_applications_clock(ClockType.SM)
         self.device.set_applications_clocks(self.mem_clock, self.sm_clock)
-        print(f"Set application clocks: {self.mem_clock}|{self.self.device.get_applications_clock(ClockType.MEM)}mem "
+        print(f"Set application clocks: {self.mem_clock}|{self.device.get_applications_clock(ClockType.MEM)}mem "
               f"{self.sm_clock}|{self.device.get_applications_clock(ClockType.SM)}sm")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -1222,3 +1214,17 @@ class ClockLimit:
             self.device.set_applications_clocks(self.default_mem_clock, self.default_sm_clock)
         print(f"Reset application clocks: {self.device.get_applications_clock(ClockType.MEM)}mem "
               f"{self.device.get_applications_clock(ClockType.SM)}sm")
+
+
+class LockedClocks:
+    """A class to manage locked clocks in a nice way."""
+    def __init__(self, device: Device, min_clock: int, max_clock: int):
+        self.device = device
+        self.min_clock = min_clock
+        self.max_clock = max_clock
+
+    def __enter__(self):
+        self.device.set_gpu_locked_clocks(self.min_clock, self.max_clock)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.device.reset_gpu_locked_clocks()
