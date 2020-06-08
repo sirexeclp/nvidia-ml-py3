@@ -190,7 +190,7 @@ class SamplingType(UIntEnum):
 
 class PcieUtilCounter(UIntEnum):
     TX_BYTES = 0
-    PRX_BYTES = 1
+    RX_BYTES = 1
 
 
 #################################

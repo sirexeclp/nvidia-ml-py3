@@ -1110,7 +1110,7 @@ class Device(NvmlBase):
         Return.check(ret)
         return ValueType(c_sample_value_type.value), list(c_samples)
 
-    def nvmlDeviceGetViolationStatus(self, perf_policy_type: PerfPolicyType) -> ViolationTime:
+    def get_violation_status(self, perf_policy_type: PerfPolicyType) -> ViolationTime:
         c_violTime = ViolationTime()
         fn = self.lib.get_function_pointer("nvmlDeviceGetViolationStatus")
 
@@ -1119,14 +1119,14 @@ class Device(NvmlBase):
         Return.check(ret)
         return c_violTime
 
-    def nvmlDeviceGetPcieThroughput(self, counter: PcieUtilCounter) -> int:
+    def get_pcie_throughput(self, counter: PcieUtilCounter) -> int:
         c_util = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPcieThroughput")
         ret = fn(self.handle, counter.as_c_type(), byref(c_util))
         Return.check(ret)
         return c_util.value
 
-    def nvmlDeviceGetTopologyNearestGpus(self, level: GpuTopologyLevel):
+    def get_topology_nearest_gpus(self, level: GpuTopologyLevel):
         """
 
         @param level:
@@ -1148,7 +1148,7 @@ class Device(NvmlBase):
         Return.check(ret)
         return [Device(x) for x in c_devices]
 
-    def nvmlDeviceGetTopologyCommonAncestor(self, device2: "Device") -> GpuTopologyLevel:
+    def get_topology_common_ancestor(self, device2: "Device") -> GpuTopologyLevel:
         """
 
         @param device2:
