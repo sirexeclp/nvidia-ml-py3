@@ -553,7 +553,7 @@ class Device(NvmlBase):
         if result == Return.SUCCESS:
             # special case, no clocks
             return []
-        elif result == Return.INSUFFICIENT_SIZE:
+        elif result == Return.ERROR_INSUFFICIENT_SIZE:
             # typical case
             clocks_array = c_uint * c_count.value
             c_clocks = clocks_array()
@@ -1175,6 +1175,8 @@ class PowerLimit:
         self.default_value = None
 
     def __enter__(self):
+        if self.power_limit is None:
+            return
         if self.set_default:
             self.default_value = self.device.get_power_management_default_limit()
         else:
@@ -1184,6 +1186,8 @@ class PowerLimit:
         print(f"Set power-limit to {self.power_limit}. Actual: {self.device.get_power_management_limit()}.")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.power_limit is None:
+            return
         self.device.set_power_management_limit(self.default_value)
         print(f"Reset power-limit to default value ({self.default_value}).")
 
@@ -1200,6 +1204,8 @@ class ApplicationClockLimit:
         self.default_sm_clock = None
 
     def __enter__(self):
+        if self.mem_clock is None or self.sm_clock is None:
+            return
         if not self.set_default:
             self.default_mem_clock = self.device.get_applications_clock(ClockType.MEM)
             self.default_sm_clock = self.device.get_applications_clock(ClockType.SM)
@@ -1208,6 +1214,8 @@ class ApplicationClockLimit:
               f"{self.sm_clock}|{self.device.get_applications_clock(ClockType.SM)}sm")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.mem_clock is None or self.sm_clock is None:
+            return
         if self.set_default:
             self.device.reset_applications_clocks()
         else:
@@ -1224,7 +1232,9 @@ class LockedClocks:
         self.max_clock = max_clock
 
     def __enter__(self):
-        self.device.set_gpu_locked_clocks(self.min_clock, self.max_clock)
+        if self.min_clock is not None and self.max_clock is not None:
+            self.device.set_gpu_locked_clocks(self.min_clock, self.max_clock)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.device.reset_gpu_locked_clocks()
+        if self.min_clock is not None and self.max_clock is not None:
+            self.device.reset_gpu_locked_clocks()

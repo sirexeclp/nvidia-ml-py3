@@ -257,7 +257,9 @@ class Memory(PrintableStructure):
 
 class ProcessInfo(PrintableStructure):
     _fields_ = [
+        # Process ID.
         ('pid', c_uint),
+        # Amount of used GPU memory in bytes.
         ('usedGpuMemory', c_ulonglong),
     ]
     _fmt_ = {'usedGpuMemory': "%d B"}
