@@ -1,39 +1,18 @@
-======
-pyNVML
-======
-
-***
-Patched to support Python 3 (and Python 2)
-***
-
-------------------------------------------------
+# pyNVML
 Python bindings to the NVIDIA Management Library
-------------------------------------------------
 
-Provides a Python interface to GPU management and monitoring functions.
+Provides a pythonic, object oriented interface to GPU management and monitoring functions.
 
 This is a wrapper around the NVML library.
 For information about the NVML library, see the NVML developer page
 http://developer.nvidia.com/nvidia-management-library-nvml
 
-Download the latest package from:
-https://pypi.python.org/pypi/nvidia-ml-py3
-
-Note this file can be run with 'python -m doctest -v README.txt'
-although the results are system dependent
-
-REQUIRES
---------
-Python 2.5, or an earlier version with the ctypes module.
 
 INSTALLATION
 ------------
 
     sudo python setup.py install
 
-or
-
-    pip install nvidia-ml-py3
 
 USAGE
 -----
@@ -61,6 +40,7 @@ Each function's use is the same with the following exceptions:
 - Instead of returning error codes, failing error codes are raised as
   Python exceptions.
 
+
     >>> try:
     ...     nvmlDeviceGetCount()
     ... except NVMLError as error:
@@ -71,7 +51,6 @@ Each function's use is the same with the following exceptions:
 - C function output parameters are returned from the corresponding
   Python function left to right.
 
-::
 
     nvmlReturn_t nvmlDeviceGetEccMode(nvmlDevice_t device,
                                       nvmlEnableState_t *current,
@@ -83,7 +62,6 @@ Each function's use is the same with the following exceptions:
 
 - C structs are converted into Python classes.
 
-::
 
     nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device,
                                                  nvmlMemory_t *memory);
@@ -103,7 +81,6 @@ Each function's use is the same with the following exceptions:
 
 - Python handles string buffer creation.
 
-::
 
     nvmlReturn_t nvmlSystemGetDriverVersion(char* version,
                                             unsigned int length);
