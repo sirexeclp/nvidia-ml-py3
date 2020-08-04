@@ -1,4 +1,5 @@
 import string
+from collections import namedtuple
 from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER, byref, c_longlong
 
 from enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuState, PcieLinkState, \
@@ -9,6 +10,8 @@ from enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuStat
 # Allows mismatched types to be assigned
 #  - like None when the Structure variant requires c_uint
 from errors import Return
+
+Sample = namedtuple("Sample", ["timestamp", "value"])
 
 
 class FriendlyObject(object):
@@ -315,7 +318,7 @@ class Value(Union):
         return value_type.extract_value(self)
 
 
-class Sample(PrintableStructure):
+class RawSample(PrintableStructure):
     _fields_ = [
         ('timeStamp', c_ulonglong),
         ('sampleValue', Value),

@@ -1,5 +1,5 @@
 from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 from constants import VALUE_NOT_AVAILABLE_ulonglong
 from enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
@@ -12,7 +12,7 @@ from pynvml import NvmlBase, NVMLLib
 from nvlink import NvLink
 from event_set import EventSet
 from structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
-    AccountingStats, BridgeChipHierarchy, Sample, ViolationTime
+    AccountingStats, BridgeChipHierarchy, RawSample, ViolationTime, Sample
 
 
 class Device(NvmlBase):
@@ -1055,10 +1055,13 @@ class Device(NvmlBase):
         # First call will get the size
         ret = fn(self.handle, c_source, byref(c_count), None)
         result = Return(ret)
-        # this should only fail with insufficient size
-        if ((result != Return.SUCCESS) and
-                (result != Return.ERROR_INSUFFICIENT_SIZE)):
-            raise NVMLError(ret)
+
+        Return.check(ret)
+
+        # # this should only fail with insufficient size
+        # if ((result != Return.SUCCESS) and
+        #         (result != Return.ERROR_INSUFFICIENT_SIZE)):
+        #     raise NVMLError(ret)
 
         # call again with a buffer
         # oversize the array for the rare cases where additional pages
@@ -1091,7 +1094,7 @@ class Device(NvmlBase):
         Return.check(ret)
         return bridge_hierarchy
 
-    def get_samples(self, sampling_type: SamplingType, time_stamp: int) -> Tuple[ValueType, List[Sample]]:
+    def _get_raw_samples(self, sampling_type: SamplingType, time_stamp: int) -> Tuple[ValueType, List[RawSample]]:
         c_sampling_type = sampling_type.as_c_type()
         c_time_stamp = c_ulonglong(time_stamp)
         c_sample_count = c_uint(0)
@@ -1103,12 +1106,27 @@ class Device(NvmlBase):
                  byref(c_sample_value_type), byref(c_sample_count), None)
         Return.check(ret)
 
-        sampleArray = c_sample_count.value * Sample
+        sampleArray = c_sample_count.value * RawSample
         c_samples = sampleArray()
         ret = fn(self.handle, c_sampling_type, c_time_stamp,
                  byref(c_sample_value_type), byref(c_sample_count), c_samples)
-        Return.check(ret)
+        Return.check(ret, sampling_type)
         return ValueType(c_sample_value_type.value), list(c_samples)
+
+    # column oriented
+    # def get_samples(self, sampling_type: SamplingType, time_stamp: int) -> Tuple[List[int], List[Union[int, float]]]:
+    #     value_type, raw_samples = self._get_raw_samples(sampling_type, time_stamp)
+    #     time_stamps = [x.timeStamp for x in raw_samples]
+    #     values = [x.sampleValue.get_value(value_type) for x in raw_samples]
+    #     return time_stamps, values
+
+    # row oriented
+    def get_samples(self, sampling_type: SamplingType, time_stamp: int) -> List[Sample]:
+        value_type, raw_samples = self._get_raw_samples(sampling_type, time_stamp)
+        # time_stamps = [x.timeStamp for x in raw_samples]
+        # values = [x.sampleValue.get_value(value_type) for x in raw_samples]
+        samples = [Sample(x.timeStamp, x.sampleValue.get_value(value_type)) for x in raw_samples]
+        return samples
 
     def get_violation_status(self, perf_policy_type: PerfPolicyType) -> ViolationTime:
         c_violTime = ViolationTime()

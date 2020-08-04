@@ -187,6 +187,9 @@ class SamplingType(UIntEnum):
     PROCESSOR_CLK_SAMPLES = 5
     MEMORY_CLK_SAMPLES = 6
 
+    def get_filename(self):
+        return str(self).split(".")[1].lower()
+
 
 class PcieUtilCounter(UIntEnum):
     TX_BYTES = 0

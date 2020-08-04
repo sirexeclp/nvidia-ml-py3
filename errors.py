@@ -1,9 +1,6 @@
 from enums import UIntEnum
 from ctypes import c_char_p
 
-# from pynvml import nvmlErrorString
-
-
 
 class Return(UIntEnum):
     SUCCESS = 0
@@ -76,21 +73,11 @@ class Return(UIntEnum):
         return error2exception[self]
 
     @staticmethod
-    def check(ret: int):
+    def check(ret: int, *args):
         if ret == Return.SUCCESS.value:
             return Return(ret)
         else:
-            raise NVMLError.from_return(ret)
-
-
-# Added in 2.285
-def nvmlErrorString(result):
-    from pynvml import NVMLLib
-    with NVMLLib() as lib:
-        fn = lib.get_function_pointer("nvmlErrorString")
-        fn.restype = c_char_p  # otherwise return is an int
-        ret = fn(result)
-        return ret
+            raise NVMLError.from_return(ret)(*args)
 
 
 class NVMLError(Exception):
@@ -100,7 +87,7 @@ class NVMLError(Exception):
     def __str__(self):
         try:
             if self.return_value not in Return:
-                return  # str(nvmlErrorString(self.return_value))
+                return str(self.get_error_string())
             else:
                 return str(Return(self.return_value))
         except NVMLErrorUninitialized:
@@ -108,6 +95,15 @@ class NVMLError(Exception):
 
     def __eq__(self, other):
         return self.return_value == other.return_value
+
+    # Added in 2.285
+    def get_error_string(self):
+        from pynvml import NVMLLib
+        with NVMLLib() as lib:
+            fn = lib.get_function_pointer("nvmlErrorString")
+            fn.restype = c_char_p  # otherwise return is an int
+            ret = fn(self.return_value)
+            return ret
 
     @staticmethod
     def from_return(return_value: int):
@@ -143,8 +139,13 @@ class NVMLErrorAlreadyInitialized(NVMLError):
 
 
 class NVMLErrorNotFound(NVMLError):
-    def __init__(self):
+    def __init__(self, *args):
         super().__init__(Return.ERROR_NOT_FOUND.value)
+        self.args = args
+    
+    def __str__(self):
+        return super(NVMLErrorNotFound, self).__str__() + str(self.args) 
+        
 
 
 class NVMLErrorInsufficientSize(NVMLError):
