@@ -1,12 +1,11 @@
 from ctypes import c_uint, byref
-from enum import __call__
 from typing import List
 
-from device import Device
-from enums import TemperatureSensors
-from errors import Return
-from pynvml import NvmlBase, NVMLLib
-from structs import CUnitPointer, UnitInfo, LedState, PSUInfo, UnitFanSpeeds, CDevicePointer
+from pynvml.device import Device
+from pynvml.enums import TemperatureSensors
+from pynvml.errors import Return
+from pynvml.pynvml import NvmlBase, NVMLLib
+from pynvml.structs import CUnitPointer, UnitInfo, LedState, PSUInfo, UnitFanSpeeds, CDevicePointer
 
 
 class Unit(NvmlBase):

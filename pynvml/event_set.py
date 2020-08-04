@@ -1,8 +1,8 @@
 from ctypes import byref, c_uint
 
-from errors import Return
-from pynvml import NvmlBase, NVMLLib
-from structs import CEventSetPointer, EventData
+from pynvml.errors import Return
+from pynvml.pynvml import NvmlBase, NVMLLib
+from pynvml.structs import CEventSetPointer, EventData
 
 
 class EventSet(NvmlBase):

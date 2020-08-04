@@ -1,10 +1,10 @@
 from ctypes import create_string_buffer, c_uint, byref, c_int
 from typing import List, Tuple
 
-from constants import SYSTEM_NVML_VERSION_BUFFER_SIZE, SYSTEM_DRIVER_VERSION_BUFFER_SIZE
-from errors import Return
-from pynvml import NvmlBase
-from structs import HwbcEntry, CDevicePointer
+from pynvml.constants import SYSTEM_NVML_VERSION_BUFFER_SIZE, SYSTEM_DRIVER_VERSION_BUFFER_SIZE
+from pynvml.errors import Return
+from pynvml.pynvml import NvmlBase
+from pynvml.structs import HwbcEntry, CDevicePointer
 
 
 class System(NvmlBase):

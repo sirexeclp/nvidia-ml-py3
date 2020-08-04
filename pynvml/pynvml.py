@@ -37,8 +37,7 @@ from pathlib import Path
 from typing import List
 from abc import ABC
 
-from errors import NVMLErrorFunctionNotFound, NVMLErrorSharedLibraryNotFound
-from structs import *
+from pynvml.errors import NVMLErrorFunctionNotFound, NVMLErrorSharedLibraryNotFound
 
 """
 The NVIDIA Management Library (NVML) is a C-based programmatic interface for monitoring

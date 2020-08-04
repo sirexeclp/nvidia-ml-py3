@@ -1,4 +1,4 @@
-from enums import UIntEnum
+from pynvml.enums import UIntEnum
 from ctypes import c_char_p
 
 
@@ -98,7 +98,7 @@ class NVMLError(Exception):
 
     # Added in 2.285
     def get_error_string(self):
-        from pynvml import NVMLLib
+        from pynvml.pynvml import NVMLLib
         with NVMLLib() as lib:
             fn = lib.get_function_pointer("nvmlErrorString")
             fn.restype = c_char_p  # otherwise return is an int

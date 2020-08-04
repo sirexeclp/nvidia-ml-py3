@@ -1,10 +1,10 @@
 from ctypes import c_uint, byref, c_ulonglong
 from typing import Tuple
 
-from enums import EnableState, NvLinkCapability, NvLinkErrorCounter
-from errors import Return
-from pynvml import NvmlBase
-from structs import PciInfo, NvLinkUtilizationControl
+from pynvml.enums import EnableState, NvLinkCapability, NvLinkErrorCounter
+from pynvml.errors import Return
+from pynvml.pynvml import NvmlBase
+from pynvml.structs import PciInfo, NvLinkUtilizationControl
 
 
 class NvLink(NvmlBase):

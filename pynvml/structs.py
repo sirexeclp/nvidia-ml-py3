@@ -2,14 +2,14 @@ import string
 from collections import namedtuple
 from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER, byref, c_longlong
 
-from enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuState, PcieLinkState, \
+from pynvml.enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuState, PcieLinkState, \
     NvLinkUtilizationCountUnits, NvLinkUtilizationCountPktTypes, ValueType, FieldId
 
 # Alternative object
 # Allows the object to be printed
 # Allows mismatched types to be assigned
 #  - like None when the Structure variant requires c_uint
-from errors import Return
+from pynvml.errors import Return
 
 Sample = namedtuple("Sample", ["timestamp", "value"])
 
@@ -175,8 +175,8 @@ class PciInfo(PrintableStructure):
 
         PASCAL_OR_NEWER, Some Kepler devices supported.
         """
-        from errors import Return
-        from pynvml import NVMLLib
+        from pynvml.errors import Return
+        from pynvml.pynvml import NVMLLib
         # if self.get_persistence_mode() == EnableState.FEATURE_ENABLED:
         #     self.set_persistence_mode(EnableState.FEATURE_DISABLED)
         pci_info = self  # .nvml_device_get_pci_info()
@@ -201,8 +201,8 @@ class PciInfo(PrintableStructure):
 
         PASCAL_OR_NEWER, Some Kepler devices supported.
         """
-        from errors import Return
-        from pynvml import NVMLLib
+        from pynvml.errors import Return
+        from pynvml.pynvml import NVMLLib
         # The PCI tree to be searched. Only the domain, bus, and device fields are used in this call.
         fn = NVMLLib().get_function_pointer("nvmlDeviceDiscoverGpus")
         ret = fn(byref(self))
@@ -221,8 +221,8 @@ class PciInfo(PrintableStructure):
         @param new_state: The drain state that should be entered, see EnableState
         @type new_state: EnableState
         """
-        from errors import Return
-        from pynvml import NVMLLib
+        from pynvml.errors import Return
+        from pynvml.pynvml import NVMLLib
         # pci_info = self.nvml_device_get_pci_info()
         fn = NVMLLib().get_function_pointer("nvmlDeviceModifyDrainState")
         ret = fn(byref(self), new_state.as_c_type())
@@ -239,8 +239,8 @@ class PciInfo(PrintableStructure):
         @return: The current drain state for this GPU, see EnableState
         @rtype: EnableState
         """
-        from errors import Return
-        from pynvml import NVMLLib
+        from pynvml.errors import Return
+        from pynvml.pynvml import NVMLLib
         current_state: EnableState.c_type = EnableState.c_type()
         pci_info = self  # .nvml_device_get_pci_info()
         fn = NVMLLib().get_function_pointer("nvmlDeviceQueryDrainState")

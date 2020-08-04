@@ -1,17 +1,17 @@
 from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong
-from typing import Tuple, List, Union
+from typing import Tuple, List
 
-from constants import VALUE_NOT_AVAILABLE_ulonglong
-from enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
+from pynvml.constants import VALUE_NOT_AVAILABLE_ulonglong
+from pynvml.enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
     GpuOperationMode, FieldId, BrandType, InfoRom, TemperatureSensors, TemperatureThresholds, PowerState, \
     MemoryErrorType, MemoryLocation, PageRetirementCause, SamplingType, ValueType, PerfPolicyType, PcieUtilCounter, \
     GpuTopologyLevel
-from errors import Return, NVMLError
-from flags import EventType
-from pynvml import NvmlBase, NVMLLib
-from nvlink import NvLink
-from event_set import EventSet
-from structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
+from pynvml.errors import Return, NVMLError
+from pynvml.flags import EventType
+from pynvml.pynvml import NvmlBase, NVMLLib
+from pynvml.nvlink import NvLink
+from pynvml.event_set import EventSet
+from pynvml.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
     AccountingStats, BridgeChipHierarchy, RawSample, ViolationTime, Sample
 
 
