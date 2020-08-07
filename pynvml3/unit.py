@@ -33,20 +33,6 @@ class Unit:
         self.handle = handle
 
 
-    @staticmethod
-    def get_count() -> int:
-        """Retrieves the number of units in the system.
-
-        Returns: the number of units
-
-        """
-        from pynvml3.pynvml import NVMLLib
-        c_count = c_uint()
-        fn = NVMLLib().get_function_pointer("nvmlUnitGetCount")
-        ret = fn(byref(c_count))
-        Return.check(ret)
-        return c_count.value
-
     def get_unit_info(self) -> UnitInfo:
         """Retrieves the static information associated with a unit.
 

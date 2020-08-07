@@ -221,6 +221,18 @@ class UnitFactory:
         Return.check(ret)
         return Unit(self.lib, unit)
 
+    def get_count(self) -> int:
+        """Retrieves the number of units in the system.
+
+        Returns: the number of units
+
+        """
+        c_count = c_uint()
+        fn = self.lib.get_function_pointer("nvmlUnitGetCount")
+        ret = fn(byref(c_count))
+        Return.check(ret)
+        return c_count.value
+
 
 class DeviceFactory:
     """This ``DeviceFactory`` is used to create ``Device`` objects
