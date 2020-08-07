@@ -10,6 +10,10 @@ class EventSet:
     and wait for some event to occur."""
 
     def __init__(self, lib):
+        """Create a new EventSet.
+        Args:
+            lib (NVMLLib): a reference to the NVMLLib object
+        """
         self.lib = lib
         self.handle = self._create()
 
@@ -17,11 +21,13 @@ class EventSet:
         if self.handle is not None:
             self.free()
 
-    # Added in 2.285
     def _create(self) -> pointer:
-        """
-        Create an empty set of events. Event set should be freed by nvmlEventSetFree
-        FERMI_OR_NEWER
+        """Create an empty set of events.
+
+        Notes:
+            - FERMI_OR_NEWER
+            - Added in 2.285
+
         """
         fn = self.lib.get_function_pointer("nvmlEventSetCreate")
         eventSet = CEventSetPointer()
@@ -29,10 +35,14 @@ class EventSet:
         Return.check(ret)
         return eventSet
 
-    # Added in 2.285
     def free(self) -> None:
-        """Releases events in the set
-        FERMI_OR_NEWER"""
+        """Releases events in the set.
+
+        Notes:
+            - FERMI_OR_NEWER
+            - Added in 2.285
+
+        """
         fn = self.lib.get_function_pointer("nvmlEventSetFree")
         ret = fn(self.handle)
         Return.check(ret)
@@ -41,21 +51,41 @@ class EventSet:
     # Added in 2.285
     # raises ERROR_TIMEOUT exception on timeout
     def wait(self, timeout_ms: int) -> EventData:
-        """
-        Waits on events and delivers events
-        FERMI_OR_NEWER
-        If some events are ready to be delivered at the time of the call, function returns immediately.
-        If there are no events ready to be delivered, function sleeps till event
-        arrives but not longer than specified timeout.
-        This function in certain conditions can return before specified timeout passes (e.g. when interrupt arrives)
-        In case of xid error, the function returns the most recent xid error type seen by the system.
-        If there are multiple xid errors generated before nvmlEventSetWait is invoked then the last
-        seen xid error type is returned for all xid error events.
-        @param timeout_ms:
-        @type timeout_ms: int
-        @return:
-        @rtype: EventData
-        @raise NVMLErrorTimeout: on timeout
+        """Waits on events and delivers events
+
+        Args:
+            timeout_ms: Maximum amount of wait time in
+                milliseconds for registered event.
+
+        Note:
+            - If some events are ready to be delivered at the time of the call,
+              function returns immediately.
+
+            - If there are no events ready to be delivered,
+              function sleeps till event arrives but not
+              longer than specified timeout.
+
+            - This function in certain conditions can return before specified
+              timeout passes (e.g. when interrupt arrives)
+
+            - In case of xid error, the function returns the most recent xid
+              error type seen by the system.
+
+            - If there are multiple xid errors generated before ``wait``
+              is invoked then the last seen xid error type
+              is returned for all xid error events.
+
+        Notes:
+            For Fermi or newer fully supported devices.
+
+        Returns: event data
+
+        Raises:
+             NVMLErrorTimeout: on timeout
+
+        Important:
+            TODO: Implement using ``nvmlEventSetWait_v2``
+
         """
         fn = self.lib.get_function_pointer("nvmlEventSetWait")
         data = EventData()

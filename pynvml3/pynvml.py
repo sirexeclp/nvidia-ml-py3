@@ -26,31 +26,23 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 #####
 
+from deprecated import deprecated
 from ctypes import *
 import sys
 import os
 import threading
 from pathlib import Path
 from typing import List
+import typing
 from abc import ABC
 
-from pynvml3 import EventSet
+from pynvml3.event_set import EventSet
+from pynvml3.unit import CUnitPointer, Unit
 from pynvml3.system import System
 from pynvml3.device import Device, CDevicePointer
 from pynvml3.errors import NVMLErrorFunctionNotFound, NVMLErrorSharedLibraryNotFound, Return
 
-"""
 
-Python bindings for the NVML library
-------------------------------------
-
-The NVIDIA Management Library (NVML) is a C-based programmatic interface for monitoring
-and managing various states within NVIDIA Tesla™ GPUs.
-It is intended to be a platform for building 3rd party applications,
-and is also the underlying library for the NVIDIA-supported nvidia-smi tool.
-NVML is thread-safe so it is safe to make simultaneous NVML calls from multiple threads.
-https://docs.nvidia.com/deploy/nvml-api/nvml-api-reference.html
-"""
 
 
 # On Windows with the WDDM driver, usedGpuMemory is reported as None
@@ -153,7 +145,7 @@ class NVMLLib:
                  win_dir / r"System32\nvml.dll"]
         return paths
 
-    def get_function_pointer(self, name):
+    def get_function_pointer(self, name) -> "ctypes.CDLL.__init__.<locals>._FuncPtr":
         if name in self.function_pointer_cache:
             return self.function_pointer_cache[name]
 
@@ -167,25 +159,34 @@ class NVMLLib:
     @property
     def device(self):
         """Returns a new ``DeviceFactory`` object, which can be used
-         to build Device(GPU)-Objects in several ways."""
+         to build Device(GPU)-Objects in several ways.
+
+        """
+
         return DeviceFactory(self)
 
     @property
-    def system(self):
+    def system(self) -> "System":
         """Returns a new ``System`` object, which can be used
-         to get system related information."""
+         to get system related information.
+
+        """
+
         return System(self)
 
     @property
-    def event_set(self):
+    def event_set(self) -> "EventSet":
         """Returns an new empty ``EventSet`` set."""
+
         return EventSet(self)
 
 
 class DeviceFactory:
     """This ``DeviceFactory`` is used to create ``Device`` objects
      in various ways. It ensures, that each ``Device`` gets a reference
-     to the nvml-library."""
+     to the :class:`NVMLLib`.
+
+     """
 
     def __init__(self, lib):
         self.lib = lib
@@ -196,13 +197,17 @@ class DeviceFactory:
         A compute device is a single GPU.
 
         Args:
-            permission (bool): if set to True, count only devices with permission to initialize
+            permission (bool): if set to True, count only devices
+                with permission to initialize
 
         Note:
            New get_count (default in NVML 5.319) returns count of all devices
            in the system even if ``from_index`` raises ``NVML_ERROR_NO_PERMISSION``
            for such device. Set ``permission`` to True, to not
-           count devices that NVML has no permission to talk to. """
+           count devices that NVML has no permission to talk to.
+
+        """
+
         c_count = c_uint()
         if permission:
             function = "nvmlDeviceGetCount"
@@ -213,7 +218,6 @@ class DeviceFactory:
         Return.check(ret)
         return c_count.value
 
-    # @staticmethod
     def from_index(self, index: int) -> "Device":
         """
 
@@ -229,14 +233,30 @@ class DeviceFactory:
         Return.check(ret)
         return Device(self.lib, handle)
 
-    # @staticmethod
+    @deprecated
     def from_serial(self, serial: str) -> "Device":
-        """
+        """Acquire the handle for a particular device,
+        based on its board serial number.
 
-        @param serial:
-        @type serial:
-        @return:
-        @rtype: Device
+        Attention:
+            Since more than one GPU can exist on a single board this
+            function is deprecated in favor of :func:`DeviceFactory.from_uuid`.
+
+        Args:
+            serial: The board serial number of the target GPU
+
+        Returns: the device object
+
+        Raises:
+            NVMLErrorInvalidArgument: For dual GPU boards
+
+        Note:
+            This number corresponds to the value printed directly on the board,
+            and to the value returned by nvmlDeviceGetSerial().
+            Starting from NVML 5, this API causes NVML to initialize the target
+            GPU NVML may initialize additional GPUs
+            as it searches for the target GPU
+
         """
         c_serial = c_char_p(serial.encode("ASCII"))
         handle = CDevicePointer()
@@ -245,14 +265,23 @@ class DeviceFactory:
         Return.check(ret)
         return Device(self.lib, handle)
 
-    # @staticmethod
     def from_uuid(self, uuid: str) -> "Device":
-        """
+        """Acquire a particular device, based on its globally unique
+        immutable UUID associated with each device.
 
-        @param uuid:
-        @type uuid:
-        @return:
-        @rtype: Device
+        Note:
+             Starting from NVML 5, this API causes NVML to initialize the
+             target GPU NVML may initialize additional GPUs
+             as it searches for the target GPU
+
+            This API does not currently support acquiring
+            MIG device handles using MIG device UUIDs.
+
+        Args:
+            uuid: The UUID of the target GPU
+
+        Returns: the device object
+
         """
         c_uuid = c_char_p(uuid.encode("ASCII"))
         handle = CDevicePointer()
@@ -261,7 +290,6 @@ class DeviceFactory:
         Return.check(ret)
         return Device(self.lib, handle)
 
-    # @staticmethod
     def from_pci_bus_id(self, pci_bus_id: str) -> "Device":
         """
         Acquire the handle for a particular device, based on its PCI bus id.
@@ -274,8 +302,8 @@ class DeviceFactory:
             NVML 4.304 and older version of nvmlDeviceGetHandleByPciBusId"_v1"
             returns NVML_ERROR_NOT_FOUND instead of NVML_ERROR_NO_PERMISSION.
 
-        :return: the device handle with the specified pci bus id
-        :rtype: Device
+        Returns: the device handle with the specified pci bus id
+
         """
         c_busId = c_char_p(pci_bus_id.encode("ASCII"))
         handle = CDevicePointer()

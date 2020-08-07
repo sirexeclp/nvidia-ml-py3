@@ -30,24 +30,43 @@ class FriendlyObject(object):
 
 class PrintableStructure(Structure):
     """
-    Abstract class that produces nicer __str__ output than ctypes.Structure.
-    e.g. instead of:
-      >>> print str(obj)
-      <class_name object at 0x7fdf82fef9e0>
-    this class will print
-      class_name(field_name: formatted_value, field_name: formatted_value)
+    Abstract class that produces nicer :func:`__str__` output
+    than ctypes.Structure.
 
-    _fmt_ dictionary of <str _field_ name> -> <str format>
-    e.g. class that has _field_ 'hex_value', c_uint could be formatted with
-      _fmt_ = {"hex_value" : "%08X"}
-    to produce nicer output.
-    Default fomratting string for all fields can be set with key "<default>" like:
-      _fmt_ = {"<default>" : "%d MHz"} # e.g all values are numbers in MHz.
-    If not set it's assumed to be just "%s"
+    Examples:
+        e.g. instead of::
 
-    Exact format of returned str from this class is subject to change in the future.
+            print str(obj)
+
+        <class_name object at 0x7fdf82fef9e0>
+
+        this class will print
+
+        class_name(field_name: formatted_value, field_name: formatted_value)
     """
+
     _fmt_: typing.Dict[str, str] = {}
+    """typing.Dict[str, str]: define formatting for given fields
+    
+    Examples:
+        e.g. class that has ``_field_`` 'hex_value', c_uint
+        could be formatted with::
+        
+            _fmt_ = {"hex_value" : "%08X"}
+        
+        to produce nicer output.
+    
+        Default formatting string for all fields
+        can be set with key "<default>" like::
+            
+            _fmt_ = {"<default>" : "%d MHz"} # e.g all values are numbers in MHz
+        
+        If not set it's assumed to be just "%s"
+    
+    Warnings:
+        Exact format of returned str from this class
+        is subject to change in the future.
+    """
 
     def __str__(self):
         result = []
@@ -104,9 +123,13 @@ CEventSetPointer = POINTER(CEventSet)
 
 class UnitInfo(PrintableStructure):
     _fields_ = [
+        # Product name.
         ('name', c_char * 96),
+        # Product identifier.
         ('id', c_char * 96),
+        # Product serial number.
         ('serial', c_char * 96),
+        # Firmware version.
         ('firmwareVersion', c_char * 96),
     ]
 
@@ -119,6 +142,30 @@ class LedState(PrintableStructure):
 
 
 class PSUInfo(PrintableStructure):
+    """Power usage information for an S-class unit.
+
+    Args:
+        current: PSU current (A).
+        power: PSU power draw (W).
+        state: The power supply state.
+        voltage: PSU voltage (V).
+
+    Note:
+        The power supply state is a human readable string that equals
+        "Normal" or contains a combination of "Abnormal"
+        plus one or more of the following:
+
+        - High voltage
+        - Fan failure
+        - Heatsink temperature
+        - Current limit
+        - Voltage below UV alarm threshold
+        - Low-voltage
+        - SI2C remote off command
+        - MOD_DISABLE input
+        - Short pin transition
+
+    """
     _fields_ = [
         ('state', c_char * 256),
         ('current', c_uint),
@@ -135,6 +182,14 @@ class UnitFanInfo(PrintableStructure):
 
 
 class UnitFanSpeeds(PrintableStructure):
+    """Fan speed readings for an entire S-class unit.
+
+    Args:
+        fans: Number of fans in unit.
+        count: Fan speed data for each fan.
+
+
+    """
     _fields_ = [
         ('fans', UnitFanInfo * 24),
         ('count', c_uint)
@@ -338,6 +393,16 @@ class ViolationTime(PrintableStructure):
 
 
 class EventData(PrintableStructure):
+    """Information about occurred event
+
+    Args:
+        device: Specific device where the event occurred.
+        eventType: Information about what specific event occurred.
+        eventData: Stores XID error for the device in
+            the event of nvmlEventTypeXidCriticalError.
+
+    """
+
     _fields_ = [
         ('device', CDevicePointer),
         ('eventType', c_ulonglong),

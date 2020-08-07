@@ -8,15 +8,16 @@ from pynvml3.structs import HwbcEntry, CDevicePointer
 
 class System:
     """Queries that NVML can perform against the local system.
-    These queries are not device-specific."""
+    These queries are not device-specific.
+
+    """
 
     def __init__(self, lib):
         self.lib = lib
 
-    # Added in 2.285
     def get_nvml_version(self) -> str:
         """Retrieves the version of the NVML library.
-        *ALL_PRODUCTS*
+
         The version identifier is an alphanumeric string.
         It will not exceed 80 characters in length (including the NULL terminator).
         See nvmlConstants::NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE."""
