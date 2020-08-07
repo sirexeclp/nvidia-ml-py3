@@ -51,6 +51,12 @@ class TemperatureSensors(UIntEnum):
     TEMPERATURE_GPU = 0
 
 
+class TemperatureType(UIntEnum):
+    INTAKE = 0
+    EXHAUST = 1
+    BOARD = 2
+
+
 class ComputeMode(UIntEnum):
     DEFAULT = 0
     EXCLUSIVE_THREAD = 1
