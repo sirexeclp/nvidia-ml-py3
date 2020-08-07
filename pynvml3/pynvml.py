@@ -26,7 +26,6 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 #####
 
-from deprecated import deprecated
 from ctypes import *
 import sys
 import os
@@ -275,7 +274,6 @@ class DeviceFactory:
         Return.check(ret)
         return Device(self.lib, handle)
 
-    @deprecated
     def from_serial(self, serial: str) -> "Device":
         """Acquire the handle for a particular device,
         based on its board serial number.
