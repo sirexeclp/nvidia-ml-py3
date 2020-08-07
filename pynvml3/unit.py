@@ -15,7 +15,7 @@ class Unit:
 
     """
 
-    def __init__(self, lib: "pynvml3.pynvml.NVMLLib", index: int):
+    def __init__(self, lib: "pynvml3.pynvml.NVMLLib", handle: "pynvml3.structs.CUnitPointer"):
         """Acquire the handle for a particular unit, based on its index.
 
         Note:
@@ -28,9 +28,9 @@ class Unit:
             index: The index of the target unit, >= 0 and < unitCount
 
         """
-        super().__init__()
-        self.handle = self._get_handle_by_index(index)
+
         self.lib = lib
+        self.handle = handle
 
 
     @staticmethod
