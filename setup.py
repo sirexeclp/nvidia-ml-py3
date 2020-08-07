@@ -1,12 +1,11 @@
-from distutils.core import setup
-from sys import version
+import setuptools
 
-_package_name="pynvml3"
+_package_name = "pynvml3"
 
 with open("README.md", "r") as f:
     long_description = f.read()
 
-setup(name=_package_name,
+setuptools.setup(name=_package_name,
       version="8.440.0",
       description="Python Bindings for the NVIDIA Management Library",
       long_description=long_description,
@@ -27,6 +26,6 @@ setup(name=_package_name,
           "Topic :: Software Development :: Libraries :: Python Modules",
           "Topic :: System :: Hardware",
           "Topic :: System :: Systems Administration",
-          ],
+      ],
       python_requires=">=3.7"
       )
