@@ -6,12 +6,26 @@
 Welcome to pynvml3's documentation!
 ===================================
 
+Python bindings for the NVML library
+------------------------------------
+
+The NVIDIA Management Library (NVML) is a C-based programmatic interface for monitoring
+and managing various states within NVIDIA Tesla™ GPUs.
+It is intended to be a platform for building 3rd party applications,
+and is also the underlying library for the NVIDIA-supported nvidia-smi tool.
+NVML is thread-safe so it is safe to make simultaneous NVML calls from multiple threads.
+https://docs.nvidia.com/deploy/nvml-api/nvml-api-reference.html
+
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    lib
-
+   enums
+   structs
+   event_set
+   unit
 
 Usage
 =====
