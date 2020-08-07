@@ -1,5 +1,5 @@
 from pynvml3.device import Device
-from .constraints import PowerLimit, LockedClocks
+from .constraints import PowerLimit, LockedClocks, ApplicationClockLimit
 from .constants import *
 from .enums import *
 from .errors import *

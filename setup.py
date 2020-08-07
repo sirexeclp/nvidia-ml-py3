@@ -27,5 +27,5 @@ setuptools.setup(name=_package_name,
           "Topic :: System :: Hardware",
           "Topic :: System :: Systems Administration",
       ],
-      python_requires=">=3.7"
+      python_requires=">=3.6"
       )
