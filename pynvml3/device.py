@@ -1,21 +1,24 @@
-from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong
+import os
+import math
+
+from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong, pointer
 from typing import Tuple, List
 
-from pynvml.constants import VALUE_NOT_AVAILABLE_ulonglong
-from pynvml.enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
+from pynvml3.constants import VALUE_NOT_AVAILABLE_ulonglong
+from pynvml3.enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
     GpuOperationMode, FieldId, BrandType, InfoRom, TemperatureSensors, TemperatureThresholds, PowerState, \
     MemoryErrorType, MemoryLocation, PageRetirementCause, SamplingType, ValueType, PerfPolicyType, PcieUtilCounter, \
     GpuTopologyLevel
-from pynvml.errors import Return, NVMLError
-from pynvml.flags import EventType
-from pynvml.pynvml import NvmlBase, NVMLLib
-from pynvml.nvlink import NvLink
-from pynvml.event_set import EventSet
-from pynvml.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
+from pynvml3.errors import Return, NVMLError
+from pynvml3.flags import EventType
+# from pynvml3.pynvml import NvmlBase #, NVMLLib
+from pynvml3.nvlink import NvLink
+from pynvml3.event_set import EventSet
+from pynvml3.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
     AccountingStats, BridgeChipHierarchy, RawSample, ViolationTime, Sample
 
 
-class Device(NvmlBase):
+class Device:
     """
     Queries that NVML can perform against each device.
     In each case the device is identified with an nvmlDevice_t handle.
@@ -30,89 +33,10 @@ class Device(NvmlBase):
     VBIOS_VERSION_BUFFER_SIZE = 32
     PCI_BUS_ID_BUFFER_SIZE = 16
 
-    def __init__(self, handle: CDevicePointer):
-        super().__init__()
-        self.handle: CDevicePointer = handle
-
-    @staticmethod
-    def nvmlDeviceGetCount(self) -> int:
-        """ """
-        c_count = c_uint()
-        fn = NVMLLib().get_function_pointer("nvmlDeviceGetCount_v2")
-        ret = fn(byref(c_count))
-        Return.check(ret)
-        return c_count.value
-
-    @staticmethod
-    def from_index(index: int) -> "Device":
-        """
-
-        @param index:
-        @type index:
-        @return:
-        @rtype: Device
-        """
-        c_index = c_uint(index)
-        handle = CDevicePointer()
-        fn = NVMLLib().get_function_pointer("nvmlDeviceGetHandleByIndex_v2")
-        ret = fn(c_index, byref(handle))
-        Return.check(ret)
-        return Device(handle)
-
-    @staticmethod
-    def from_serial(serial: str) -> "Device":
-        """
-
-        @param serial:
-        @type serial:
-        @return:
-        @rtype: Device
-        """
-        c_serial = c_char_p(serial.encode("ASCII"))
-        handle = CDevicePointer()
-        fn = NVMLLib().get_function_pointer("nvmlDeviceGetHandleBySerial")
-        ret = fn(c_serial, byref(handle))
-        Return.check(ret)
-        return Device(handle)
-
-    @staticmethod
-    def from_uuid(uuid: str) -> "Device":
-        """
-
-        @param uuid:
-        @type uuid:
-        @return:
-        @rtype: Device
-        """
-        c_uuid = c_char_p(uuid.encode("ASCII"))
-        handle = CDevicePointer()
-        fn = NVMLLib().get_function_pointer("nvmlDeviceGetHandleByUUID")
-        ret = fn(c_uuid, byref(handle))
-        Return.check(ret)
-        return Device(handle)
-
-    @staticmethod
-    def from_pci_bus_id(self, pci_bus_id: str) -> "Device":
-        """
-        Acquire the handle for a particular device, based on its PCI bus id.
-        ALL_PRODUCTS
-        This value corresponds to the nvmlPciInfo_t::busId returned by nvmlDeviceGetPciInfo().
-        Starting from NVML 5, this API causes NVML to initialize the target GPU
-        NVML may initialize additional GPUs if: The target GPU is an SLI slave
-
-        Note:
-            NVML 4.304 and older version of nvmlDeviceGetHandleByPciBusId"_v1"
-            returns NVML_ERROR_NOT_FOUND instead of NVML_ERROR_NO_PERMISSION.
-
-        :return: the device handle with the specified pci bus id
-        :rtype: Device
-        """
-        c_busId = c_char_p(pci_bus_id.encode("ASCII"))
-        handle = CDevicePointer()
-        fn = NVMLLib().get_function_pointer("nvmlDeviceGetHandleByPciBusId_v2")
-        ret = fn(c_busId, byref(handle))
-        Return.check(ret)
-        return Device(handle)
+    def __init__(self, lib, handle: pointer):
+        # super().__init__()
+        self.lib = lib
+        self.handle = handle
 
     #
     # New Methods
@@ -360,8 +284,6 @@ class Device(NvmlBase):
         return c_serial.value.decode("UTF-8")
 
     def get_cpu_affinity(self) -> List[int]:
-        import os
-        import math
         cpu_set_size = math.ceil(os.cpu_count() / sizeof(c_ulong))
         affinity_array = c_ulong * cpu_set_size
         c_affinity = affinity_array()
@@ -719,7 +641,7 @@ class Device(NvmlBase):
         c_counts = EccErrorCounts()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDetailedEccErrors")
         ret = fn(self.handle, error_type.as_c_type(),
-                 counterType.as_c_type(), byref(c_counts))
+                 counter_type.as_c_type(), byref(c_counts))
         Return.check(ret)
         return c_counts
 
@@ -769,7 +691,7 @@ class Device(NvmlBase):
         fn = self.lib.get_function_pointer("nvmlDeviceGetDriverModel")
         ret = fn(self.handle, byref(c_currModel), byref(c_pendingModel))
         Return.check(ret)
-        return c_currModel.value, c_pendingModel.value
+        return DriverModel(c_currModel.value), DriverModel(c_pendingModel.value)
 
     # added to API
     def get_current_driver_model(self) -> DriverModel:
@@ -1181,78 +1103,3 @@ class Device(NvmlBase):
         return GpuTopologyLevel(c_level.value)
 
 
-class PowerLimit:
-    """
-    A class to manage power-limits in a nice way.
-    """
-
-    def __init__(self, device: Device, power_limit: int, set_default: bool = False):
-        self.device = device
-        self.power_limit = power_limit
-        self.set_default = set_default
-        self.default_value = None
-
-    def __enter__(self):
-        if self.power_limit is None:
-            return
-        if self.set_default:
-            self.default_value = self.device.get_power_management_default_limit()
-        else:
-            self.default_value = self.device.get_power_management_limit()
-
-        self.device.set_power_management_limit(self.power_limit)
-        print(f"Set power-limit to {self.power_limit}. Actual: {self.device.get_power_management_limit()}.")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.power_limit is None:
-            return
-        self.device.set_power_management_limit(self.default_value)
-        print(f"Reset power-limit to default value ({self.default_value}).")
-
-
-class ApplicationClockLimit:
-    """A class to manage clock-limits in a nice way."""
-
-    def __init__(self, device: Device, mem_clock: int, sm_clock: int, set_default: bool = True):
-        self.device = device
-        self.mem_clock = mem_clock
-        self.sm_clock = sm_clock
-        self.set_default = set_default
-        self.default_mem_clock = None
-        self.default_sm_clock = None
-
-    def __enter__(self):
-        if self.mem_clock is None or self.sm_clock is None:
-            return
-        if not self.set_default:
-            self.default_mem_clock = self.device.get_applications_clock(ClockType.MEM)
-            self.default_sm_clock = self.device.get_applications_clock(ClockType.SM)
-        self.device.set_applications_clocks(self.mem_clock, self.sm_clock)
-        print(f"Set application clocks: {self.mem_clock}|{self.device.get_applications_clock(ClockType.MEM)}mem "
-              f"{self.sm_clock}|{self.device.get_applications_clock(ClockType.SM)}sm")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.mem_clock is None or self.sm_clock is None:
-            return
-        if self.set_default:
-            self.device.reset_applications_clocks()
-        else:
-            self.device.set_applications_clocks(self.default_mem_clock, self.default_sm_clock)
-        print(f"Reset application clocks: {self.device.get_applications_clock(ClockType.MEM)}mem "
-              f"{self.device.get_applications_clock(ClockType.SM)}sm")
-
-
-class LockedClocks:
-    """A class to manage locked clocks in a nice way."""
-    def __init__(self, device: Device, min_clock: int, max_clock: int):
-        self.device = device
-        self.min_clock = min_clock
-        self.max_clock = max_clock
-
-    def __enter__(self):
-        if self.min_clock is not None and self.max_clock is not None:
-            self.device.set_gpu_locked_clocks(self.min_clock, self.max_clock)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.min_clock is not None and self.max_clock is not None:
-            self.device.reset_gpu_locked_clocks()

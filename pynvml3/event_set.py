@@ -1,31 +1,29 @@
-from ctypes import byref, c_uint
+from ctypes import byref, c_uint, pointer
 
-from pynvml.errors import Return
-from pynvml.pynvml import NvmlBase, NVMLLib
-from pynvml.structs import CEventSetPointer, EventData
+from pynvml3.errors import Return
+from pynvml3.structs import CEventSetPointer, EventData
 
 
-class EventSet(NvmlBase):
+class EventSet:
     """Handle to an event set,
     methods that NVML can perform against each device to register
     and wait for some event to occur."""
 
-    def __init__(self):
-        super().__init__()
-        self.handle = EventSet.create()
+    def __init__(self, lib):
+        self.lib = lib
+        self.handle = self._create()
 
     def __del__(self):
         if self.handle is not None:
             self.free()
 
     # Added in 2.285
-    @staticmethod
-    def create() -> "EventSet":
+    def _create(self) -> pointer:
         """
         Create an empty set of events. Event set should be freed by nvmlEventSetFree
         FERMI_OR_NEWER
         """
-        fn = NVMLLib().get_function_pointer("nvmlEventSetCreate")
+        fn = self.lib.get_function_pointer("nvmlEventSetCreate")
         eventSet = CEventSetPointer()
         ret = fn(byref(eventSet))
         Return.check(ret)
@@ -57,6 +55,7 @@ class EventSet(NvmlBase):
         @type timeout_ms: int
         @return:
         @rtype: EventData
+        @raise NVMLErrorTimeout: on timeout
         """
         fn = self.lib.get_function_pointer("nvmlEventSetWait")
         data = EventData()

@@ -1,15 +1,17 @@
-from ctypes import create_string_buffer, c_uint, byref, c_int
+from ctypes import create_string_buffer, c_uint, byref, c_int, pointer
 from typing import List, Tuple
 
-from pynvml.constants import SYSTEM_NVML_VERSION_BUFFER_SIZE, SYSTEM_DRIVER_VERSION_BUFFER_SIZE
-from pynvml.errors import Return
-from pynvml.pynvml import NvmlBase
-from pynvml.structs import HwbcEntry, CDevicePointer
+from pynvml3.constants import SYSTEM_NVML_VERSION_BUFFER_SIZE, SYSTEM_DRIVER_VERSION_BUFFER_SIZE
+from pynvml3.errors import Return
+from pynvml3.structs import HwbcEntry, CDevicePointer
 
 
-class System(NvmlBase):
+class System:
     """Queries that NVML can perform against the local system.
     These queries are not device-specific."""
+
+    def __init__(self, lib):
+        self.lib = lib
 
     # Added in 2.285
     def get_nvml_version(self) -> str:
@@ -90,7 +92,7 @@ class System(NvmlBase):
         major, minor = version // 1_000, (version % 1_000) // 10
         return major, minor
 
-    def get_topology_gpu_set(self, cpu_number: int) -> List[CDevicePointer]:
+    def get_topology_gpu_set(self, cpu_number: int) -> List[pointer]:
         """Retrieve the set of GPUs that have a CPU affinity with the given CPU number.
         ALL_PRODUCTS
         Supported on Linux only."""

@@ -1,18 +1,18 @@
 from ctypes import c_uint, byref, c_ulonglong
 from typing import Tuple
 
-from pynvml.enums import EnableState, NvLinkCapability, NvLinkErrorCounter
-from pynvml.errors import Return
-from pynvml.pynvml import NvmlBase
-from pynvml.structs import PciInfo, NvLinkUtilizationControl
+from pynvml3.enums import EnableState, NvLinkCapability, NvLinkErrorCounter
+from pynvml3.errors import Return
+from pynvml3.structs import PciInfo, NvLinkUtilizationControl
 
 
-class NvLink(NvmlBase):
+class NvLink:
     """Methods that NVML can perform on NVLINK enabled devices."""
 
     def __init__(self, device, link_id):
         self.device = device
         self.link = link_id
+        self.lib = self.device.lib
 
     def freeze_utilization_counter(self, counter: int, freeze: EnableState) -> None:
         """
