@@ -56,3 +56,13 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 autodoc_member_order="bysource"
+# autoclass_content = "both"
+
+# see: https://stackoverflow.com/a/5599712/7997186
+def skip(app, what, name, obj, would_skip, options):
+    if name == "__init__":
+        return False
+    return would_skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
