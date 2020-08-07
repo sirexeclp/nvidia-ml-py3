@@ -1,7 +1,7 @@
 from ctypes import POINTER, c_ulonglong
 from enum import IntFlag
 
-from pynvml.structs import CEventSet
+from pynvml3.structs import CEventSet
 
 
 class EventType(IntFlag):

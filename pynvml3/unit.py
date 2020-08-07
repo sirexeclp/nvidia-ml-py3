@@ -1,14 +1,14 @@
-from ctypes import c_uint, byref
+from ctypes import c_uint, byref, pointer
 from typing import List
 
-from pynvml.device import Device
-from pynvml.enums import TemperatureSensors
-from pynvml.errors import Return
-from pynvml.pynvml import NvmlBase, NVMLLib
-from pynvml.structs import CUnitPointer, UnitInfo, LedState, PSUInfo, UnitFanSpeeds, CDevicePointer
+from pynvml3.device import Device
+from pynvml3.enums import TemperatureSensors, LedColor
+from pynvml3.errors import Return
+# from pynvml3.pynvml import NvmlBase, NVMLLib
+from pynvml3.structs import CUnitPointer, UnitInfo, LedState, PSUInfo, UnitFanSpeeds, CDevicePointer
 
 
-class Unit(NvmlBase):
+class Unit():
     """
     Unit get functions
     """
@@ -17,7 +17,7 @@ class Unit(NvmlBase):
         super().__init__()
         self.handle = self._get_handle_by_index(index)
 
-    def _get_handle_by_index(self, index: int) -> CUnitPointer:
+    def _get_handle_by_index(self, index: int) -> pointer:
         c_index = c_uint(index)
         unit = CUnitPointer()
         fn = self.lib.get_function_pointer("nvmlUnitGetHandleByIndex")
