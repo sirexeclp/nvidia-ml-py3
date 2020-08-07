@@ -157,7 +157,16 @@ class NVMLLib:
                 raise NVMLErrorFunctionNotFound
 
     @property
-    def device(self):
+    def unit(self) -> "UnitFactory":
+        """Returns a new ``UnitFactory`` object, which can be used
+         to build Unit-Objects in several ways.
+
+        """
+
+        return UnitFactory(self)
+
+    @property
+    def device(self) -> "DeviceFactory":
         """Returns a new ``DeviceFactory`` object, which can be used
          to build Device(GPU)-Objects in several ways.
 
@@ -179,6 +188,39 @@ class NVMLLib:
         """Returns an new empty ``EventSet`` set."""
 
         return EventSet(self)
+
+
+class UnitFactory:
+    """This ``UnitFactory`` is used to create ``Unit`` objects
+         in various ways. It ensures, that each ``Unit`` gets a reference
+         to the :class:`NVMLLib`.
+
+    """
+
+    def __init__(self, lib):
+        self.lib = lib
+
+    def from_index(self, index: int) -> Unit:
+        """Acquire the handle for a particular unit, based on its index.
+
+        Valid indices are derived from the unitCount returned by
+        :func:`pynvml3.unit.Unit.get_count()`. For example, if unitCount is 2 the valid
+        indices are 0 and 1, corresponding to UNIT 0 and UNIT 1.
+
+        Args:
+            index: index of the unit
+
+        Returns:
+            CUnitPointer: the Unit Object
+
+        """
+
+        c_index = c_uint(index)
+        unit = CUnitPointer()
+        fn = self.lib.get_function_pointer("nvmlUnitGetHandleByIndex")
+        ret = fn(c_index, byref(unit))
+        Return.check(ret)
+        return Unit(self.lib, unit)
 
 
 class DeviceFactory:

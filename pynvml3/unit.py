@@ -32,13 +32,6 @@ class Unit:
         self.handle = self._get_handle_by_index(index)
         self.lib = lib
 
-    def _get_handle_by_index(self, index: int) -> pointer:
-        c_index = c_uint(index)
-        unit = CUnitPointer()
-        fn = self.lib.get_function_pointer("nvmlUnitGetHandleByIndex")
-        ret = fn(c_index, byref(unit))
-        Return.check(ret)
-        return unit
 
     @staticmethod
     def get_count() -> int:
