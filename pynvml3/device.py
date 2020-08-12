@@ -710,6 +710,23 @@ class Device:
         return c_version.value.decode("UTF-8")
 
     def _get_running_processes(self, fn) -> List[ProcessInfo]:
+        """
+
+        Note:
+            On Windows with the WDDM driver, usedGpuMemory is reported as None
+            Code that processes this structure should check for None, I.E.::
+
+                if (info.usedGpuMemory == None):
+                    # handle the error
+                    pass
+
+            See NVML documentation for more information
+        Args:
+            fn ():
+
+        Returns:
+
+        """
         # first call to get the size
         c_count = c_uint(0)
         ret = fn(self.handle, byref(c_count), None)
@@ -744,10 +761,39 @@ class Device:
 
     # Added in 2.285
     def get_compute_running_processes(self) -> List[ProcessInfo]:
+        """
+
+        Note:
+            On Windows with the WDDM driver, usedGpuMemory is reported as None
+            Code that processes this structure should check for None, I.E.::
+
+                if (info.usedGpuMemory == None):
+                    # handle the error
+                    pass
+
+            See NVML documentation for more information
+        Returns:
+
+        """
         fn = self.lib.get_function_pointer("nvmlDeviceGetComputeRunningProcesses")
         return self._get_running_processes(fn)
 
     def get_graphics_running_processes(self) -> List[ProcessInfo]:
+        """
+
+        Note:
+            On Windows with the WDDM driver, usedGpuMemory is reported as None
+            Code that processes this structure should check for None, I.E.::
+
+                if (info.usedGpuMemory == None):
+                    # handle the error
+                    pass
+
+            See NVML documentation for more information
+
+        Returns:
+
+        """
         fn = self.lib.get_function_pointer("nvmlDeviceGetGraphicsRunningProcesses")
         return self._get_running_processes(fn)
 
@@ -1033,7 +1079,10 @@ class Device:
         ret = fn(self.handle, c_sampling_type, c_time_stamp,
                  byref(c_sample_value_type), byref(c_sample_count), c_samples)
         Return.check(ret, sampling_type)
-        return ValueType(c_sample_value_type.value), list(c_samples)
+
+        # keep only c_sample_count first samples; others are invalid
+        valid_samples = list(c_samples)[:c_sample_count.value]
+        return ValueType(c_sample_value_type.value), valid_samples
 
     # column oriented
     # def get_samples(self, sampling_type: SamplingType, time_stamp: int) -> Tuple[List[int], List[Union[int, float]]]:
