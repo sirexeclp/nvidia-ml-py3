@@ -1074,6 +1074,10 @@ class Device:
                  byref(c_sample_value_type), byref(c_sample_count), None)
         Return.check(ret)
 
+        # return empty list, if no samples are available
+        if c_sample_count.value == 0:
+            return ValueType(c_sample_value_type.value), []
+
         sampleArray = c_sample_count.value * RawSample
         c_samples = sampleArray()
         ret = fn(self.handle, c_sampling_type, c_time_stamp,
