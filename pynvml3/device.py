@@ -1,6 +1,5 @@
-import os
 import math
-
+import os
 from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong, pointer
 from typing import Tuple, List
 
@@ -9,12 +8,12 @@ from pynvml3.enums import ClockType, ClockId, EccCounterType, RestrictedAPI, Ena
     GpuOperationMode, FieldId, BrandType, InfoRom, TemperatureSensors, TemperatureThresholds, PowerState, \
     MemoryErrorType, MemoryLocation, PageRetirementCause, SamplingType, ValueType, PerfPolicyType, PcieUtilCounter, \
     GpuTopologyLevel
-from pynvml3.errors import Return, NVMLError
-from pynvml3.flags import EventType
-# from pynvml3.pynvml import NvmlBase #, NVMLLib
-from pynvml3.nvlink import NvLink
+from pynvml3.errors import Return, NVMLError, NVMLErrorNotFound
 from pynvml3.event_set import EventSet
-from pynvml3.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, ProcessInfo, \
+from pynvml3.flags import EventType
+from pynvml3.nvlink import NvLink
+from pynvml3.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, \
+    ProcessInfo, \
     AccountingStats, BridgeChipHierarchy, RawSample, ViolationTime, Sample
 
 
@@ -409,8 +408,7 @@ class Device:
 
     # Added in 4.304
     def get_applications_clock(self, clock_type: ClockType) -> int:
-        """
-        Retrieves the current setting of a clock that applications will use
+        """Retrieves the current setting of a clock that applications will use
         unless an overspec situation occurs. Can be changed using nvmlDeviceSetApplicationsClocks.
         KEPLER_OR_NEWER
         @param clock_type: Identify which clock domain to query
@@ -512,7 +510,11 @@ class Device:
 
     # DEPRECATED use nvmlDeviceGetPerformanceState
     def get_power_state(self) -> PowerState:
-        """@deprecated"""
+        """
+        Warnings:
+            deprecated
+            use :func:`Device.get_performance_state`
+        """
         power_state = PowerState.c_type()
         fn = self.lib.get_function_pointer("nvmlDeviceGetPowerState")
         ret = fn(self.handle, byref(power_state))
@@ -559,6 +561,18 @@ class Device:
 
     # Added in 331
     def get_enforced_power_limit(self) -> int:
+        """Get the effective power limit that the driver enforces
+        after taking into account all limiters.
+
+        Note:
+            This can be different from the :func:`Device.get_power_management_limit`
+            if other limits are set elsewhere.
+            This includes the out of band power limit interface.
+
+        Returns: the power management limit in milliwatts
+
+        """
+
         c_limit = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetEnforcedPowerLimit")
         ret = fn(self.handle, byref(c_limit))
@@ -1074,10 +1088,6 @@ class Device:
                  byref(c_sample_value_type), byref(c_sample_count), None)
         Return.check(ret)
 
-        # return empty list, if no samples are available
-        if c_sample_count.value == 0:
-            return ValueType(c_sample_value_type.value), []
-
         sampleArray = c_sample_count.value * RawSample
         c_samples = sampleArray()
         ret = fn(self.handle, c_sampling_type, c_time_stamp,
@@ -1102,6 +1112,12 @@ class Device:
         # values = [x.sampleValue.get_value(value_type) for x in raw_samples]
         samples = [Sample(x.timeStamp, x.sampleValue.get_value(value_type)) for x in raw_samples]
         return samples
+
+    def try_get_samples(self, sampling_type: SamplingType, time_stamp: int) -> List[Sample]:
+        try:
+            samples = self.get_samples(sampling_type, time_stamp)
+        except NVMLErrorNotFound:
+            return []
 
     def get_violation_status(self, perf_policy_type: PerfPolicyType) -> ViolationTime:
         c_violTime = ViolationTime()
