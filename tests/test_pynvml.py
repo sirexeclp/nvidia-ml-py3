@@ -1,7 +1,8 @@
+import time
 from datetime import datetime, timedelta
 from unittest import TestCase
 
-from pynvml3 import FieldId, ValueType, InfoRom
+from pynvml3 import FieldId, ValueType, InfoRom, SamplingType
 from pynvml3.pynvml import NVMLLib
 from pynvml3.system import System
 from pynvml3.device import Device
@@ -74,3 +75,9 @@ class TestDevice(TestCase):
             # print("Unitcount", Unit.get_count())
             # print("unitcount", Unit(0).get_psu_info())
             print("aff", [bin(x) for x in device.get_cpu_affinity()])
+
+    def test_clock_samples(self):
+        with NVMLLib() as lib:
+            dev = lib.device.from_index(0)
+            t = int(time.time() * 1_000_000)
+            dev.try_get_samples(SamplingType.PROCESSOR_CLK_SAMPLES, t)
