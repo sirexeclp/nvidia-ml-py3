@@ -20,7 +20,14 @@ class PowerLimit:
                 raise if it failed
         """
         self.device = device
-        self.power_limit = power_limit
+
+        min_limit, max_limit = self.device.get_power_management_limit_constraints()
+        if min_limit <= power_limit <= max_limit:
+            self.power_limit = power_limit
+        else:
+            raise ValueError(f"PowerLimit must be in range {min_limit} - {max_limit} (inclusive)."
+                             f"But was {power_limit}")
+
         self.set_default = set_default
         self.default_value = None
         self.check = check
