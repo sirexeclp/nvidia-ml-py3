@@ -1115,7 +1115,7 @@ class Device:
 
     def try_get_samples(self, sampling_type: SamplingType, time_stamp: int) -> List[Sample]:
         try:
-            samples = self.get_samples(sampling_type, time_stamp)
+            return self.get_samples(sampling_type, time_stamp)
         except NVMLErrorNotFound:
             return []
 
