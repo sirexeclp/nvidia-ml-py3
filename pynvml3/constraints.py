@@ -22,7 +22,7 @@ class PowerLimit:
         self.device = device
 
         min_limit, max_limit = self.device.get_power_management_limit_constraints()
-        if min_limit <= power_limit <= max_limit:
+        if power_limit is None or min_limit <= power_limit <= max_limit:
             self.power_limit = power_limit
         else:
             raise ValueError(f"PowerLimit must be in range {min_limit} - {max_limit} (inclusive)."
