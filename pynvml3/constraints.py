@@ -21,11 +21,11 @@ class PowerLimit:
         """
         self.device = device
 
-        min_limit, max_limit = self.device.get_power_management_limit_constraints()
-        if power_limit is None or min_limit <= power_limit <= max_limit:
+        self.min_limit, self.max_limit = self.device.get_power_management_limit_constraints()
+        if power_limit is None or self.min_limit <= power_limit <= self.max_limit:
             self.power_limit = power_limit
         else:
-            raise ValueError(f"PowerLimit must be in range {min_limit} - {max_limit} (inclusive)."
+            raise ValueError(f"PowerLimit must be in range {self.min_limit} - {self.max_limit} (inclusive)."
                              f"But was {power_limit}")
 
         self.set_default = set_default
@@ -34,6 +34,7 @@ class PowerLimit:
 
     def __enter__(self):
         if self.power_limit is None:
+            self.device.set_power_management_limit(self.max_limit)
             return
         if self.set_default:
             self.default_value = self.device.get_power_management_default_limit()
@@ -77,6 +78,7 @@ class ApplicationClockLimit:
 
     def __enter__(self):
         if self.mem_clock is None or self.sm_clock is None:
+            self.device.reset_applications_clocks()
             return
         if not self.set_default:
             self.default_mem_clock = self.device.get_applications_clock(ClockType.MEM)
