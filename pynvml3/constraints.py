@@ -1,9 +1,10 @@
-from pynvml3 import Device
-from pynvml3.enums import ClockType
-
 """This module contains classes to Manage resource constraints on GPUS.
-All classes are implemented as context managers, so the constraints will be applied when entering the context and
-reset, when leaving it."""
+
+All classes are implemented as context managers, so the constraints
+will be applied when entering the context and reset, when leaving it.
+"""
+from pynvml3 import Device
+from pynvml3.enums import ClockId, ClockType
 
 
 class PowerLimit:
@@ -55,7 +56,11 @@ class PowerLimit:
                 + f" Actual: {self.device.get_enforced_power_limit()}."
             )
         print(
-            f"Set power-limit to {self.power_limit}. Actual: {self.device.get_enforced_power_limit()}."
+            "Set power-limit to",
+            self.power_limit,
+            ". Actual: ",
+            self.device.get_enforced_power_limit(),
+            ".",
         )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -68,6 +73,7 @@ class PowerLimit:
 class ApplicationClockLimit:
     """A class to manage application clock-limits in a nice way."""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         device: Device,

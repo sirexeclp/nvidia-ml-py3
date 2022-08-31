@@ -1,3 +1,4 @@
+"""Struct definitions to interact with the c api."""
 import string
 import typing
 from collections import namedtuple
@@ -36,23 +37,26 @@ from pynvml3.errors import Return
 
 
 class Sample(NamedTuple):
+    """A measurement sample with an attached timestamp."""
+
     timestamp: int
     value: typing.Union[int, float]
 
 
 class FriendlyObject(object):
-    def __init__(self, dictionary):
-        for x in dictionary:
-            setattr(self, x, dictionary[x])
+    """Construct a python object from the given dictionary."""
+
+    def __init__(self, dictionary: dict):
+        for key in dictionary:
+            setattr(self, key, dictionary[key])
 
     def __str__(self):
         return self.__dict__.__str__()
 
 
 class PrintableStructure(Structure):
-    """
-    Abstract class that produces nicer :func:`__str__` output
-    than ctypes.Structure.
+    """Abstract class that produces nicer :func:`__str__` output than
+    ctypes.Structure.
 
     Examples:
         e.g. instead of::
@@ -68,22 +72,22 @@ class PrintableStructure(Structure):
 
     _fmt_: typing.Dict[str, str] = {}
     """typing.Dict[str, str]: define formatting for given fields
-    
+
     Examples:
         e.g. class that has ``_field_`` 'hex_value', c_uint
         could be formatted with::
-        
+
             _fmt_ = {"hex_value" : "%08X"}
-        
+
         to produce nicer output.
-    
+
         Default formatting string for all fields
         can be set with key "<default>" like::
-            
+
             _fmt_ = {"<default>" : "%d MHz"} # e.g all values are numbers in MHz
-        
+
         If not set it's assumed to be just "%s"
-    
+
     Warnings:
         Exact format of returned str from this class
         is subject to change in the future.
@@ -143,6 +147,8 @@ CEventSetPointer = POINTER(CEventSet)
 
 
 class UnitInfo(PrintableStructure):
+    """Info about the unit."""
+
     _fields_ = [
         # Product name.
         ("name", c_char * 96),
@@ -156,6 +162,8 @@ class UnitInfo(PrintableStructure):
 
 
 class LedState(PrintableStructure):
+    """LedState info."""
+
     _fields_ = [
         ("cause", c_char * 256),
         ("color", LedColor.c_type),
@@ -185,7 +193,6 @@ class PSUInfo(PrintableStructure):
         - SI2C remote off command
         - MOD_DISABLE input
         - Short pin transition
-
     """
 
     _fields_ = [
@@ -209,8 +216,6 @@ class UnitFanSpeeds(PrintableStructure):
     Args:
         fans: Number of fans in unit.
         count: Fan speed data for each fan.
-
-
     """
 
     _fields_ = [("fans", UnitFanInfo * 24), ("count", c_uint)]
@@ -242,17 +247,21 @@ class PciInfo(PrintableStructure):
         self, gpu_state=DetachGpuState.REMOVE, link_state=PcieLinkState.KEEP
     ):
         """
-        This method will remove the specified GPU from the view of both NVML and the NVIDIA kernel driver
-        as long as no other processes are attached. If other processes are attached,
-        this call will return NVML_ERROR_IN_USE and the GPU will be returned to its original "draining" state.
-        Note: the only situation where a process can still be attached after nvmlDeviceModifyDrainState()
-        is called to initiate the draining state is if that process was using, and is still using,
-        a GPU before the call was made. Also note, persistence mode counts as an attachment to the GPU
-        thus it must be disabled prior to this call.
-        For long-running NVML processes please note that this will change the enumeration of current GPUs.
-        For example, if there are four GPUs present and GPU1 is removed, the new enumeration will be 0-2.
-        Also, device handles after the removed GPU will not be valid and must be re-established.
-        Must be run as administrator. For Linux only.
+        This method will remove the specified GPU from the view of both NVML
+        and the NVIDIA kernel driver as long as no other processes are attached.
+        If other processes are attached, this call will return NVML_ERROR_IN_USE
+        and the GPU will be returned to its original "draining" state.
+
+        Note: the only situation where a process can still be attached
+            after nvmlDeviceModifyDrainState() is called to initiate
+            the draining state is if that process was using, and is still using,
+            a GPU before the call was made. Also note, persistence mode
+            counts as an attachment to the GPU thus it must be disabled prior to this call.
+
+        For long-running NVML processes please note that this will change the enumeration
+        of current GPUs. For example, if there are four GPUs present and GPU1 is removed,
+        the new enumeration will be 0-2. Also, device handles after the removed GPU will
+        not be valid and must be re-established. Must be run as administrator. For Linux only.
 
         PASCAL_OR_NEWER, Some Kepler devices supported.
         """
@@ -268,16 +277,16 @@ class PciInfo(PrintableStructure):
 
     # @staticmethod
     def discover_gpus(self):
-        """
-        Request the OS and the NVIDIA kernel driver to rediscover a portion of the PCI subsystem
-        looking for GPUs that were previously removed.
-        The portion of the PCI tree can be narrowed by specifying a domain, bus, and device.
-        If all are zeroes then the entire PCI tree will be searched.
-        Please note that for long-running NVML processes the enumeration will change
-        based on how many GPUs are discovered and where they are inserted in bus order.
-        In addition, all newly discovered GPUs will be initialized and their ECC scrubbed
-        which may take several seconds per GPU.
-        Also, all device handles are no longer guaranteed to be valid post discovery.
+        """Request the OS and the NVIDIA kernel driver to rediscover a portion
+        of the PCI subsystem looking for GPUs that were previously removed. The
+        portion of the PCI tree can be narrowed by specifying a domain, bus,
+        and device. If all are zeroes then the entire PCI tree will be
+        searched. Please note that for long-running NVML processes the
+        enumeration will change based on how many GPUs are discovered and where
+        they are inserted in bus order. In addition, all newly discovered GPUs
+        will be initialized and their ECC scrubbed which may take several
+        seconds per GPU. Also, all device handles are no longer guaranteed to
+        be valid post discovery.
 
         Must be run as administrator. For Linux only.
 
@@ -286,18 +295,19 @@ class PciInfo(PrintableStructure):
         from pynvml3.errors import Return
         from pynvml3.pynvml import NVMLLib
 
-        # The PCI tree to be searched. Only the domain, bus, and device fields are used in this call.
+        # The PCI tree to be searched.
+        # Only the domain, bus, and device fields are used in this call.
         fn = NVMLLib().get_function_pointer("nvmlDeviceDiscoverGpus")
         ret = fn(byref(self))
         Return.check(ret)
 
     # @staticmethod
     def modify_drain_state(self, new_state: EnableState) -> None:
-        """
-        Modify the drain state of a GPU. This method forces a GPU to no longer accept new incoming requests.
-        Any new NVML process will no longer see this GPU.
-        Persistence mode for this GPU must be turned off before this call is made.
-        Must be called as administrator. For Linux only.
+        """Modify the drain state of a GPU. This method forces a GPU to no
+        longer accept new incoming requests. Any new NVML process will no
+        longer see this GPU. Persistence mode for this GPU must be turned off
+        before this call is made. Must be called as administrator. For Linux
+        only.
 
         PASCAL_OR_NEWER, Some Kepler devices supported.
 
@@ -313,10 +323,9 @@ class PciInfo(PrintableStructure):
         Return.check(ret)
 
     def query_drain_state(self) -> EnableState:
-        """
-        Query the drain state of a GPU.
-        This method is used to check if a GPU is in a currently draining state.
-        For Linux only.
+        """Query the drain state of a GPU.
+
+        This method is used to check if a GPU is in a currently draining state. For Linux only.
 
         PASCAL_OR_NEWER, Some Kepler devices supported.
 
@@ -418,14 +427,13 @@ class ViolationTime(PrintableStructure):
 
 
 class EventData(PrintableStructure):
-    """Information about occurred event
+    """Information about occurred event.
 
     Args:
         device: Specific device where the event occurred.
         eventType: Information about what specific event occurred.
         eventData: Stores XID error for the device in
             the event of nvmlEventTypeXidCriticalError.
-
     """
 
     _fields_ = [
@@ -470,7 +478,7 @@ class NvLinkUtilizationControl(PrintableStructure):
 
 
 class FieldValue(PrintableStructure):
-    """Information for a Field Value Sample"""
+    """Information for a Field Value Sample."""
 
     _fields_ = [
         # ID of the NVML field to retrieve. This must be set before any call that uses this struct.
