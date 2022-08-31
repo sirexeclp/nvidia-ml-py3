@@ -30,7 +30,9 @@ class NvLink:
         @rtype: None
         """
         fn = self.lib.get_function_pointer("nvmlDeviceFreezeNvLinkUtilizationCounter")
-        ret = fn(self.device.handle, c_uint(self.link), c_uint(counter), freeze.as_c_type())
+        ret = fn(
+            self.device.handle, c_uint(self.link), c_uint(counter), freeze.as_c_type()
+        )
         Return.check(ret)
 
     def get_capability(self, link: int, capability: NvLinkCapability) -> bool:
@@ -49,12 +51,14 @@ class NvLink:
         """
         cap_result = c_uint()
         fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkCapability")
-        ret = fn(self.device.handle, c_uint(link), capability.as_c_type(), byref(cap_result))
+        ret = fn(
+            self.device.handle, c_uint(link), capability.as_c_type(), byref(cap_result)
+        )
         Return.check(ret)
         return bool(cap_result.value)
 
     def get_error_counter(self, link: int, counter: NvLinkErrorCounter) -> int:
-        """ Retrieves the specified error counter value.
+        """Retrieves the specified error counter value.
         Please refer to nvmlNvLinkErrorCounter_t for error counters that are available
 
         PASCAL_OR_NEWER
@@ -63,7 +67,9 @@ class NvLink:
         """
         counter_value = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkErrorCounter")
-        ret = fn(self.device.handle, c_uint(link), counter.as_c_type(), byref(counter_value))
+        ret = fn(
+            self.device.handle, c_uint(link), counter.as_c_type(), byref(counter_value)
+        )
         Return.check(ret)
         return counter_value.value
 
@@ -88,7 +94,9 @@ class NvLink:
         Return.check(ret)
         return EnableState(is_active.value)
 
-    def get_utilization_control(self, link: int, counter: int) -> NvLinkUtilizationControl:
+    def get_utilization_control(
+        self, link: int, counter: int
+    ) -> NvLinkUtilizationControl:
         """Get the NVLINK utilization counter control information for the specified counter, 0 or 1.
         Please refer to nvmlNvLinkUtilizationControl_t for the structure definition.
 
@@ -107,10 +115,16 @@ class NvLink:
         Return.check(ret)
         return control
 
-    def get_utilization_counter(self, link: int, counter: int) -> Tuple[int ,int]:
+    def get_utilization_counter(self, link: int, counter: int) -> Tuple[int, int]:
         rx_counter, tx_counter = c_ulonglong(), c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetNvLinkUtilizationCounter")
-        ret = fn(self.device.handle, c_uint(link), c_uint(counter), byref(rx_counter), byref(tx_counter))
+        ret = fn(
+            self.device.handle,
+            c_uint(link),
+            c_uint(counter),
+            byref(rx_counter),
+            byref(tx_counter),
+        )
         Return.check(ret)
         return rx_counter.value, tx_counter.value
 
@@ -131,8 +145,15 @@ class NvLink:
         ret = fn(self.device.handle, c_uint(link), c_uint(counter))
         Return.check(ret)
 
-    def set_utilization_control(self, link: int, counter: int,
-                                        control: NvLinkUtilizationControl, reset: bool) -> None:
+    def set_utilization_control(
+        self, link: int, counter: int, control: NvLinkUtilizationControl, reset: bool
+    ) -> None:
         fn = self.lib.get_function_pointer("nvmlDeviceSetNvLinkUtilizationControl")
-        ret = fn(self.device.handle, c_uint(link), c_uint(counter), byref(control), c_uint(reset))
+        ret = fn(
+            self.device.handle,
+            c_uint(link),
+            c_uint(counter),
+            byref(control),
+            c_uint(reset),
+        )
         Return.check(ret)

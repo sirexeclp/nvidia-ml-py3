@@ -4,7 +4,14 @@ from typing import List
 from pynvml3.device import Device
 from pynvml3.enums import TemperatureSensors, LedColor, TemperatureType
 from pynvml3.errors import Return
-from pynvml3.structs import CUnitPointer, UnitInfo, LedState, PSUInfo, UnitFanSpeeds, CDevicePointer
+from pynvml3.structs import (
+    CUnitPointer,
+    UnitInfo,
+    LedState,
+    PSUInfo,
+    UnitFanSpeeds,
+    CDevicePointer,
+)
 
 
 class Unit:
@@ -15,7 +22,9 @@ class Unit:
 
     """
 
-    def __init__(self, lib: "pynvml3.pynvml.NVMLLib", handle: "pynvml3.structs.CUnitPointer"):
+    def __init__(
+        self, lib: "pynvml3.pynvml.NVMLLib", handle: "pynvml3.structs.CUnitPointer"
+    ):
         """Acquire the handle for a particular unit, based on its index.
 
         Note:
@@ -31,7 +40,6 @@ class Unit:
 
         self.lib = lib
         self.handle = handle
-
 
     def get_unit_info(self) -> UnitInfo:
         """Retrieves the static information associated with a unit.

@@ -7,9 +7,11 @@ reset, when leaving it."""
 
 
 class PowerLimit:
-    """ A class to manage power-limits in a nice way."""
+    """A class to manage power-limits in a nice way."""
 
-    def __init__(self, device: Device, power_limit: int, set_default: bool = False, check=True):
+    def __init__(
+        self, device: Device, power_limit: int, set_default: bool = False, check=True
+    ):
         """Set a power-limit for the given device.
         Args:
             device: a gpu device object
@@ -21,12 +23,17 @@ class PowerLimit:
         """
         self.device = device
 
-        self.min_limit, self.max_limit = self.device.get_power_management_limit_constraints()
+        (
+            self.min_limit,
+            self.max_limit,
+        ) = self.device.get_power_management_limit_constraints()
         if power_limit is None or self.min_limit <= power_limit <= self.max_limit:
             self.power_limit = power_limit
         else:
-            raise ValueError(f"PowerLimit must be in range {self.min_limit} - {self.max_limit} (inclusive)."
-                             f"But was {power_limit}")
+            raise ValueError(
+                f"PowerLimit must be in range {self.min_limit} - {self.max_limit} (inclusive)."
+                f"But was {power_limit}"
+            )
 
         self.set_default = set_default
         self.default_value = None
@@ -43,9 +50,13 @@ class PowerLimit:
 
         self.device.set_power_management_limit(self.power_limit)
         if self.check and (self.power_limit != self.device.get_enforced_power_limit()):
-            raise RuntimeError(f"Could not set power-limit. Set power-limit to {self.power_limit}."
-                               + f" Actual: {self.device.get_enforced_power_limit()}.")
-        print(f"Set power-limit to {self.power_limit}. Actual: {self.device.get_enforced_power_limit()}.")
+            raise RuntimeError(
+                f"Could not set power-limit. Set power-limit to {self.power_limit}."
+                + f" Actual: {self.device.get_enforced_power_limit()}."
+            )
+        print(
+            f"Set power-limit to {self.power_limit}. Actual: {self.device.get_enforced_power_limit()}."
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.power_limit is None:
@@ -57,7 +68,14 @@ class PowerLimit:
 class ApplicationClockLimit:
     """A class to manage application clock-limits in a nice way."""
 
-    def __init__(self, device: Device, mem_clock: int, sm_clock: int, set_default: bool = True, check=True):
+    def __init__(
+        self,
+        device: Device,
+        mem_clock: int,
+        sm_clock: int,
+        set_default: bool = True,
+        check=True,
+    ):
         """Set application clocks for the given device.
         Args:
             device: a gpu device object
@@ -89,12 +107,16 @@ class ApplicationClockLimit:
         sm_clock = self.device.get_applications_clock(ClockType.SM)
 
         if self.check and (self.mem_clock != mem_clock or self.sm_clock != sm_clock):
-            raise RuntimeError(f"Could not set application clocks:"
-                               f"Set application clocks: {self.mem_clock}|{mem_clock}mem "
-                               f"{self.sm_clock}|{sm_clock}sm")
+            raise RuntimeError(
+                f"Could not set application clocks:"
+                f"Set application clocks: {self.mem_clock}|{mem_clock}mem "
+                f"{self.sm_clock}|{sm_clock}sm"
+            )
 
-        print(f"Set application clocks: {self.mem_clock}|{mem_clock}mem "
-              f"{self.sm_clock}|{sm_clock}sm")
+        print(
+            f"Set application clocks: {self.mem_clock}|{mem_clock}mem "
+            f"{self.sm_clock}|{sm_clock}sm"
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.mem_clock is None or self.sm_clock is None:
@@ -102,9 +124,13 @@ class ApplicationClockLimit:
         if self.set_default:
             self.device.reset_applications_clocks()
         else:
-            self.device.set_applications_clocks(self.default_mem_clock, self.default_sm_clock)
-        print(f"Reset application clocks: {self.device.get_applications_clock(ClockType.MEM)}mem "
-              f"{self.device.get_applications_clock(ClockType.SM)}sm")
+            self.device.set_applications_clocks(
+                self.default_mem_clock, self.default_sm_clock
+            )
+        print(
+            f"Reset application clocks: {self.device.get_applications_clock(ClockType.MEM)}mem "
+            f"{self.device.get_applications_clock(ClockType.SM)}sm"
+        )
 
 
 class LockedClocks:
@@ -128,7 +154,9 @@ class LockedClocks:
             self.device.set_gpu_locked_clocks(self.min_clock, self.max_clock)
             max_clock = self.device.get_clock(ClockType.SM, ClockId.CUSTOMER_BOOST_MAX)
             if self.check and self.max_clock != max_clock:
-                raise RuntimeError(f"Could not set LockedClocks! ({max_clock}/{self.max_clock})")
+                raise RuntimeError(
+                    f"Could not set LockedClocks! ({max_clock}/{self.max_clock})"
+                )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.min_clock is not None and self.max_clock is not None:

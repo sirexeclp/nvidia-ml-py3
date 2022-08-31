@@ -26,7 +26,7 @@ class TestDevice(TestCase):
             print(device.get_cuda_compute_capability())
             # print(device.get_serial())
             # print(device.get_inforom_version(InfoRom.ECC))
-            print("total energy", device.get_total_energy_consumption()/1_000_000)
+            print("total energy", device.get_total_energy_consumption() / 1_000_000)
 
             pci_info = device.get_pci_info()
             print(pci_info.query_drain_state())
@@ -40,7 +40,7 @@ class TestDevice(TestCase):
             processes = [Process(x.pid) for x in gpu_processes]
             paths = [p.cmdline()[0] + "/" + p.name() for p in processes]
             print(paths)
-            print([p.usedGpuMemory / 2 ** 20 for p in gpu_processes])
+            print([p.usedGpuMemory / 2**20 for p in gpu_processes])
 
             print(device.get_minor_number())
 

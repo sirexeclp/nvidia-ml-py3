@@ -184,7 +184,7 @@ class ValueType(UIntEnum):
             ValueType.DOUBLE: sample_value.dVal,
             ValueType.UNSIGNED_INT: sample_value.uiVal,
             ValueType.UNSIGNED_LONG: sample_value.ulVal,
-            ValueType.UNSIGNED_LONG_LONG: sample_value.ullVal
+            ValueType.UNSIGNED_LONG_LONG: sample_value.ullVal,
         }
         return mapping[self]
 
@@ -239,15 +239,17 @@ class ClockId(UIntEnum):
 #          Drain State          #
 #################################
 
+
 class DetachGpuState(UIntEnum):
-    """Is the GPU device to be removed from the kernel by nvmlDeviceRemoveGpu()
-    """
+    """Is the GPU device to be removed from the kernel by nvmlDeviceRemoveGpu()"""
+
     KEEP = 0
     REMOVE = 1
 
 
 class PcieLinkState(UIntEnum):
     """Parent bridge PCIe link state requested by nvmlDeviceRemoveGpu()"""
+
     KEEP = 0
     SHUT_DOWN = 1
 
@@ -329,8 +331,9 @@ class PerfPolicyType(UIntEnum):
     """Total time the GPU was held below base clocks."""
 
 
-#( *)([\w_]*) *([0-9]+) *//!< (\w.*)
+# ( *)([\w_]*) *([0-9]+) *//!< (\w.*)
 #    #$4\n    $2 = $3
+
 
 class FieldId(UIntEnum):
     """Field Identifiers.

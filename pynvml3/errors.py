@@ -99,6 +99,7 @@ class NVMLError(Exception):
     # Added in 2.285
     def get_error_string(self):
         from pynvml3.pynvml import NVMLLib
+
         with NVMLLib() as lib:
             fn = lib.get_function_pointer("nvmlErrorString")
             fn.restype = c_char_p  # otherwise return is an int
@@ -142,10 +143,9 @@ class NVMLErrorNotFound(NVMLError):
     def __init__(self, *args):
         super().__init__(Return.ERROR_NOT_FOUND.value)
         self.args = args
-    
+
     def __str__(self):
-        return super(NVMLErrorNotFound, self).__str__() + str(self.args) 
-        
+        return super(NVMLErrorNotFound, self).__str__() + str(self.args)
 
 
 class NVMLErrorInsufficientSize(NVMLError):

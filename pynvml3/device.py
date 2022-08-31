@@ -1,20 +1,62 @@
 import math
 import os
-from ctypes import c_uint, byref, c_char_p, c_int, c_ulonglong, create_string_buffer, sizeof, c_ulong, pointer
+from ctypes import (
+    c_uint,
+    byref,
+    c_char_p,
+    c_int,
+    c_ulonglong,
+    create_string_buffer,
+    sizeof,
+    c_ulong,
+    pointer,
+)
 from typing import Tuple, List
 
 from pynvml3.constants import VALUE_NOT_AVAILABLE_ulonglong
-from pynvml3.enums import ClockType, ClockId, EccCounterType, RestrictedAPI, EnableState, ComputeMode, DriverModel, \
-    GpuOperationMode, FieldId, BrandType, InfoRom, TemperatureSensors, TemperatureThresholds, PowerState, \
-    MemoryErrorType, MemoryLocation, PageRetirementCause, SamplingType, ValueType, PerfPolicyType, PcieUtilCounter, \
-    GpuTopologyLevel
+from pynvml3.enums import (
+    ClockType,
+    ClockId,
+    EccCounterType,
+    RestrictedAPI,
+    EnableState,
+    ComputeMode,
+    DriverModel,
+    GpuOperationMode,
+    FieldId,
+    BrandType,
+    InfoRom,
+    TemperatureSensors,
+    TemperatureThresholds,
+    PowerState,
+    MemoryErrorType,
+    MemoryLocation,
+    PageRetirementCause,
+    SamplingType,
+    ValueType,
+    PerfPolicyType,
+    PcieUtilCounter,
+    GpuTopologyLevel,
+)
 from pynvml3.errors import Return, NVMLError, NVMLErrorNotFound
 from pynvml3.event_set import EventSet
 from pynvml3.flags import EventType
 from pynvml3.nvlink import NvLink
-from pynvml3.structs import CDevicePointer, FieldValue, PciInfo, Memory, BAR1Memory, EccErrorCounts, Utilization, \
-    ProcessInfo, \
-    AccountingStats, BridgeChipHierarchy, RawSample, ViolationTime, Sample
+from pynvml3.structs import (
+    CDevicePointer,
+    FieldValue,
+    PciInfo,
+    Memory,
+    BAR1Memory,
+    EccErrorCounts,
+    Utilization,
+    ProcessInfo,
+    AccountingStats,
+    BridgeChipHierarchy,
+    RawSample,
+    ViolationTime,
+    Sample,
+)
 
 
 class Device:
@@ -58,7 +100,9 @@ class Device:
         """
         fn = self.lib.get_function_pointer("nvmlDeviceGetClock")
         clock_mhz = c_uint()
-        ret = fn(self.handle, clock_type.as_c_type(), clock_id.as_c_type(), byref(clock_mhz))
+        ret = fn(
+            self.handle, clock_type.as_c_type(), clock_id.as_c_type(), byref(clock_mhz)
+        )
         Return.check(ret)
         return clock_mhz.value
 
@@ -145,14 +189,17 @@ class Device:
         ret = fn(self.handle)
         Return.check(ret)
 
-    def set_api_restriction(self, api_type: RestrictedAPI, is_restricted: EnableState) -> None:
+    def set_api_restriction(
+        self, api_type: RestrictedAPI, is_restricted: EnableState
+    ) -> None:
         fn = self.lib.get_function_pointer("nvmlDeviceSetAPIRestriction")
-        ret = fn(self.handle, api_type.as_c_type(),
-                 is_restricted.as_c_type())
+        ret = fn(self.handle, api_type.as_c_type(), is_restricted.as_c_type())
         Return.check(ret)
 
     # Added in 4.304
-    def set_applications_clocks(self, max_mem_clock_mhz: int, max_graphics_clock_mhz: int) -> None:
+    def set_applications_clocks(
+        self, max_mem_clock_mhz: int, max_graphics_clock_mhz: int
+    ) -> None:
         fn = self.lib.get_function_pointer("nvmlDeviceSetApplicationsClocks")
         ret = fn(self.handle, c_uint(max_mem_clock_mhz), c_uint(max_graphics_clock_mhz))
         Return.check(ret)
@@ -172,7 +219,9 @@ class Device:
         ret = fn(self.handle, mode.as_c_type())
         Return.check(ret)
 
-    def set_gpu_locked_clocks(self, min_gpu_clock_mhz: int, max_gpu_clock_mhz: int) -> None:
+    def set_gpu_locked_clocks(
+        self, min_gpu_clock_mhz: int, max_gpu_clock_mhz: int
+    ) -> None:
         """
         Set clocks that device will lock to.
         Sets the clocks that the device will be running at to the value in the range of minGpuClockMHz
@@ -233,7 +282,7 @@ class Device:
         This API allows multiple fields to be queried at once.
         If any of the underlying fieldIds are populated by the same driver call,
         the results for those field IDs will be populated from a single call
-        rather than making a driver call for each fieldId. """
+        rather than making a driver call for each fieldId."""
 
         fn = self.lib.get_function_pointer("nvmlDeviceGetFieldValues")
         field_value: FieldValue = FieldValue()
@@ -320,8 +369,12 @@ class Device:
     def get_inforom_version(self, info_rom_object: InfoRom) -> str:
         c_version = create_string_buffer(Device.INFOROM_VERSION_BUFFER_SIZE)
         fn = self.lib.get_function_pointer("nvmlDeviceGetInforomVersion")
-        ret = fn(self.handle, InfoRom.c_type(info_rom_object.value),
-                 c_version, c_uint(Device.INFOROM_VERSION_BUFFER_SIZE))
+        ret = fn(
+            self.handle,
+            InfoRom.c_type(info_rom_object.value),
+            c_version,
+            c_uint(Device.INFOROM_VERSION_BUFFER_SIZE),
+        )
         Return.check(ret)
         return c_version.value.decode("UTF-8")
 
@@ -546,7 +599,9 @@ class Device:
     def get_power_management_limit_constraints(self) -> Tuple[int, int]:
         c_minLimit = c_uint()
         c_maxLimit = c_uint()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetPowerManagementLimitConstraints")
+        fn = self.lib.get_function_pointer(
+            "nvmlDeviceGetPowerManagementLimitConstraints"
+        )
         ret = fn(self.handle, byref(c_minLimit), byref(c_maxLimit))
         Return.check(ret)
         return c_minLimit.value, c_maxLimit.value
@@ -593,7 +648,9 @@ class Device:
         fn = self.lib.get_function_pointer("nvmlDeviceGetGpuOperationMode")
         ret = fn(self.handle, byref(c_currState), byref(c_pendingState))
         Return.check(ret)
-        return GpuOperationMode(c_currState.value), GpuOperationMode(c_pendingState.value)
+        return GpuOperationMode(c_currState.value), GpuOperationMode(
+            c_pendingState.value
+        )
 
     # Added in 4.304
     def get_current_gpu_operation_mode(self) -> GpuOperationMode:
@@ -640,32 +697,52 @@ class Device:
     def get_pending_ecc_mode(self) -> EnableState:
         return self.get_ecc_mode()[1]
 
-    def get_total_ecc_errors(self, error_type: MemoryErrorType, counter_type: EccCounterType) -> int:
+    def get_total_ecc_errors(
+        self, error_type: MemoryErrorType, counter_type: EccCounterType
+    ) -> int:
         c_count = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetTotalEccErrors")
-        ret = fn(self.handle, error_type.as_c_type(),
-                 counter_type.as_c_type(), byref(c_count))
+        ret = fn(
+            self.handle,
+            error_type.as_c_type(),
+            counter_type.as_c_type(),
+            byref(c_count),
+        )
         Return.check(ret)
         return c_count.value
 
     # This is deprecated, instead use nvmlDeviceGetMemoryErrorCounter
-    def get_detailed_ecc_errors(self, error_type: MemoryErrorType,
-                                counter_type: EccCounterType) -> EccErrorCounts:
+    def get_detailed_ecc_errors(
+        self, error_type: MemoryErrorType, counter_type: EccCounterType
+    ) -> EccErrorCounts:
         """@deprecated: This is deprecated, instead use nvmlDeviceGetMemoryErrorCounter"""
         c_counts = EccErrorCounts()
         fn = self.lib.get_function_pointer("nvmlDeviceGetDetailedEccErrors")
-        ret = fn(self.handle, error_type.as_c_type(),
-                 counter_type.as_c_type(), byref(c_counts))
+        ret = fn(
+            self.handle,
+            error_type.as_c_type(),
+            counter_type.as_c_type(),
+            byref(c_counts),
+        )
         Return.check(ret)
         return c_counts
 
     # Added in 4.304
-    def get_memory_error_counter(self, error_type: MemoryErrorType,
-                                 counter_type: EccCounterType, location_type: MemoryLocation) -> int:
+    def get_memory_error_counter(
+        self,
+        error_type: MemoryErrorType,
+        counter_type: EccCounterType,
+        location_type: MemoryLocation,
+    ) -> int:
         c_count = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetMemoryErrorCounter")
-        ret = fn(self.handle, error_type.as_c_type(), counter_type.as_c_type(),
-                 location_type.as_c_type(), byref(c_count))
+        ret = fn(
+            self.handle,
+            error_type.as_c_type(),
+            counter_type.as_c_type(),
+            location_type.as_c_type(),
+            byref(c_count),
+        )
         Return.check(ret)
         return c_count.value
 
@@ -838,7 +915,9 @@ class Device:
         ret = fn(self.handle, enabled.as_c_type())
         Return.check(ret)
 
-    def set_default_auto_boosted_clocks_enabled(self, enabled: EnableState, flags: int = 0) -> None:
+    def set_default_auto_boosted_clocks_enabled(
+        self, enabled: EnableState, flags: int = 0
+    ) -> None:
         """
 
         @param flags: unused
@@ -850,7 +929,8 @@ class Device:
         @raise NVMLErrorNotSupported: if hardware doesn't support setting auto boosted clocks
         """
         fn = self.lib.get_function_pointer(
-            "nvmlDeviceSetDefaultAutoBoostedClocksEnabled")
+            "nvmlDeviceSetDefaultAutoBoostedClocksEnabled"
+        )
         ret = fn(self.handle, enabled.as_c_type(), c_uint(flags))
         Return.check(ret)
 
@@ -965,7 +1045,9 @@ class Device:
     # Added in 4.304
     def get_supported_clocks_throttle_reasons(self) -> int:
         c_reasons = c_ulonglong()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedClocksThrottleReasons")
+        fn = self.lib.get_function_pointer(
+            "nvmlDeviceGetSupportedClocksThrottleReasons"
+        )
         ret = fn(self.handle, byref(c_reasons))
         Return.check(ret)
         return c_reasons.value
@@ -1076,7 +1158,9 @@ class Device:
         Return.check(ret)
         return bridge_hierarchy
 
-    def _get_raw_samples(self, sampling_type: SamplingType, time_stamp: int) -> Tuple[ValueType, List[RawSample]]:
+    def _get_raw_samples(
+        self, sampling_type: SamplingType, time_stamp: int
+    ) -> Tuple[ValueType, List[RawSample]]:
         c_sampling_type = sampling_type.as_c_type()
         c_time_stamp = c_ulonglong(time_stamp)
         c_sample_count = c_uint(0)
@@ -1084,18 +1168,30 @@ class Device:
         fn = self.lib.get_function_pointer("nvmlDeviceGetSamples")
 
         # First Call gets the size
-        ret = fn(self.handle, c_sampling_type, c_time_stamp,
-                 byref(c_sample_value_type), byref(c_sample_count), None)
+        ret = fn(
+            self.handle,
+            c_sampling_type,
+            c_time_stamp,
+            byref(c_sample_value_type),
+            byref(c_sample_count),
+            None,
+        )
         Return.check(ret)
 
         sampleArray = c_sample_count.value * RawSample
         c_samples = sampleArray()
-        ret = fn(self.handle, c_sampling_type, c_time_stamp,
-                 byref(c_sample_value_type), byref(c_sample_count), c_samples)
+        ret = fn(
+            self.handle,
+            c_sampling_type,
+            c_time_stamp,
+            byref(c_sample_value_type),
+            byref(c_sample_count),
+            c_samples,
+        )
         Return.check(ret, sampling_type)
 
         # keep only c_sample_count first samples; others are invalid
-        valid_samples = list(c_samples)[:c_sample_count.value]
+        valid_samples = list(c_samples)[: c_sample_count.value]
         return ValueType(c_sample_value_type.value), valid_samples
 
     # column oriented
@@ -1110,10 +1206,15 @@ class Device:
         value_type, raw_samples = self._get_raw_samples(sampling_type, time_stamp)
         # time_stamps = [x.timeStamp for x in raw_samples]
         # values = [x.sampleValue.get_value(value_type) for x in raw_samples]
-        samples = [Sample(x.timeStamp, x.sampleValue.get_value(value_type)) for x in raw_samples]
+        samples = [
+            Sample(x.timeStamp, x.sampleValue.get_value(value_type))
+            for x in raw_samples
+        ]
         return samples
 
-    def try_get_samples(self, sampling_type: SamplingType, time_stamp: int) -> List[Sample]:
+    def try_get_samples(
+        self, sampling_type: SamplingType, time_stamp: int
+    ) -> List[Sample]:
         try:
             return self.get_samples(sampling_type, time_stamp)
         except NVMLErrorNotFound:
@@ -1170,5 +1271,3 @@ class Device:
         ret = fn(self.handle, device2.handle, byref(c_level))
         Return.check(ret)
         return GpuTopologyLevel(c_level.value)
-
-

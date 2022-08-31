@@ -6,7 +6,7 @@ from .errors import *
 from .event_set import EventSet
 from .flags import *
 from .nvlink import NvLink
-from .pynvml import NVMLLib# , NvmlBase
+from .pynvml import NVMLLib  # , NvmlBase
 from .structs import *
 from .system import System
 from .unit import Unit

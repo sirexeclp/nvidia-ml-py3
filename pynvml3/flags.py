@@ -6,9 +6,10 @@ from pynvml3.structs import CEventSet
 
 class EventType(IntFlag):
     """Event Types which user can be notified about."""
+
     @property
     def C_TYPE(self):
-        """ Must be a Property, because Enum Subclasses can't define members."""
+        """Must be a Property, because Enum Subclasses can't define members."""
         return POINTER(CEventSet)
 
     def as_c_type(self):
@@ -21,12 +22,9 @@ class EventType(IntFlag):
     PState = 4
     XidCriticalError = 8
     Clock = 16
-    All = (NONE |
-           SingleBitEccError |
-           DoubleBitEccError |
-           PState |
-           Clock |
-           XidCriticalError)
+    All = (
+        NONE | SingleBitEccError | DoubleBitEccError | PState | Clock | XidCriticalError
+    )
 
 
 class ClocksThrottleReason(IntFlag):
@@ -38,11 +36,4 @@ class ClocksThrottleReason(IntFlag):
     HwSlowdown = 8
     Unknown = 0x8000000000000000
     NONE = 0
-    All = (
-        NONE |
-        GpuIdle |
-        ApplicationsClocksSetting |
-        SwPowerCap |
-        HwSlowdown |
-        Unknown
-    )
+    All = NONE | GpuIdle | ApplicationsClocksSetting | SwPowerCap | HwSlowdown | Unknown

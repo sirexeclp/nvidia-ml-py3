@@ -1,7 +1,10 @@
 from ctypes import create_string_buffer, c_uint, byref, c_int, pointer
 from typing import List, Tuple
 
-from pynvml3.constants import SYSTEM_NVML_VERSION_BUFFER_SIZE, SYSTEM_DRIVER_VERSION_BUFFER_SIZE
+from pynvml3.constants import (
+    SYSTEM_NVML_VERSION_BUFFER_SIZE,
+    SYSTEM_DRIVER_VERSION_BUFFER_SIZE,
+)
 from pynvml3.errors import Return
 from pynvml3.structs import HwbcEntry, CDevicePointer
 
@@ -66,7 +69,10 @@ class System:
 
         # this should only fail with insufficient size
         return_value = Return(ret)
-        if return_value != Return.SUCCESS and return_value != Return.ERROR_INSUFFICIENT_SIZE:
+        if (
+            return_value != Return.SUCCESS
+            and return_value != Return.ERROR_INSUFFICIENT_SIZE
+        ):
             raise return_value.get_exception()
 
         # if there are no hics

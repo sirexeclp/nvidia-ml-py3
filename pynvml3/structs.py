@@ -1,11 +1,32 @@
 import string
 import typing
 from collections import namedtuple
-from ctypes import c_char, c_uint, c_ulonglong, Union, c_double, c_ulong, Structure, POINTER, byref, c_longlong
+from ctypes import (
+    c_char,
+    c_uint,
+    c_ulonglong,
+    Union,
+    c_double,
+    c_ulong,
+    Structure,
+    POINTER,
+    byref,
+    c_longlong,
+)
 from typing import NamedTuple
 
-from pynvml3.enums import LedColor, FanState, BridgeChipType, EnableState, DetachGpuState, PcieLinkState, \
-    NvLinkUtilizationCountUnits, NvLinkUtilizationCountPktTypes, ValueType, FieldId
+from pynvml3.enums import (
+    LedColor,
+    FanState,
+    BridgeChipType,
+    EnableState,
+    DetachGpuState,
+    PcieLinkState,
+    NvLinkUtilizationCountUnits,
+    NvLinkUtilizationCountPktTypes,
+    ValueType,
+    FieldId,
+)
 
 # Alternative object
 # Allows the object to be printed
@@ -124,20 +145,20 @@ CEventSetPointer = POINTER(CEventSet)
 class UnitInfo(PrintableStructure):
     _fields_ = [
         # Product name.
-        ('name', c_char * 96),
+        ("name", c_char * 96),
         # Product identifier.
-        ('id', c_char * 96),
+        ("id", c_char * 96),
         # Product serial number.
-        ('serial', c_char * 96),
+        ("serial", c_char * 96),
         # Firmware version.
-        ('firmwareVersion', c_char * 96),
+        ("firmwareVersion", c_char * 96),
     ]
 
 
 class LedState(PrintableStructure):
     _fields_ = [
-        ('cause', c_char * 256),
-        ('color', LedColor.c_type),
+        ("cause", c_char * 256),
+        ("color", LedColor.c_type),
     ]
 
 
@@ -166,18 +187,19 @@ class PSUInfo(PrintableStructure):
         - Short pin transition
 
     """
+
     _fields_ = [
-        ('state', c_char * 256),
-        ('current', c_uint),
-        ('voltage', c_uint),
-        ('power', c_uint),
+        ("state", c_char * 256),
+        ("current", c_uint),
+        ("voltage", c_uint),
+        ("power", c_uint),
     ]
 
 
 class UnitFanInfo(PrintableStructure):
     _fields_ = [
-        ('speed', c_uint),
-        ('state', FanState.c_type),
+        ("speed", c_uint),
+        ("state", FanState.c_type),
     ]
 
 
@@ -190,36 +212,35 @@ class UnitFanSpeeds(PrintableStructure):
 
 
     """
-    _fields_ = [
-        ('fans', UnitFanInfo * 24),
-        ('count', c_uint)
-    ]
+
+    _fields_ = [("fans", UnitFanInfo * 24), ("count", c_uint)]
 
 
 class PciInfo(PrintableStructure):
     _fields_ = [
-        ('busId', c_char * 16),
-        ('domain', c_uint),
-        ('bus', c_uint),
-        ('device', c_uint),
-        ('pciDeviceId', c_uint),
-
+        ("busId", c_char * 16),
+        ("domain", c_uint),
+        ("bus", c_uint),
+        ("device", c_uint),
+        ("pciDeviceId", c_uint),
         # Added in 2.285
-        ('pciSubSystemId', c_uint),
-        ('reserved0', c_uint),
-        ('reserved1', c_uint),
-        ('reserved2', c_uint),
-        ('reserved3', c_uint),
+        ("pciSubSystemId", c_uint),
+        ("reserved0", c_uint),
+        ("reserved1", c_uint),
+        ("reserved2", c_uint),
+        ("reserved3", c_uint),
     ]
     _fmt_ = {
-        'domain': "0x%04X",
-        'bus': "0x%02X",
-        'device': "0x%02X",
-        'pciDeviceId': "0x%08X",
-        'pciSubSystemId': "0x%08X",
+        "domain": "0x%04X",
+        "bus": "0x%02X",
+        "device": "0x%02X",
+        "pciDeviceId": "0x%08X",
+        "pciSubSystemId": "0x%08X",
     }
 
-    def remove_gpu(self, gpu_state=DetachGpuState.REMOVE, link_state=PcieLinkState.KEEP):
+    def remove_gpu(
+        self, gpu_state=DetachGpuState.REMOVE, link_state=PcieLinkState.KEEP
+    ):
         """
         This method will remove the specified GPU from the view of both NVML and the NVIDIA kernel driver
         as long as no other processes are attached. If other processes are attached,
@@ -237,6 +258,7 @@ class PciInfo(PrintableStructure):
         """
         from pynvml3.errors import Return
         from pynvml3.pynvml import NVMLLib
+
         # if self.get_persistence_mode() == EnableState.FEATURE_ENABLED:
         #     self.set_persistence_mode(EnableState.FEATURE_DISABLED)
         pci_info = self  # .nvml_device_get_pci_info()
@@ -263,6 +285,7 @@ class PciInfo(PrintableStructure):
         """
         from pynvml3.errors import Return
         from pynvml3.pynvml import NVMLLib
+
         # The PCI tree to be searched. Only the domain, bus, and device fields are used in this call.
         fn = NVMLLib().get_function_pointer("nvmlDeviceDiscoverGpus")
         ret = fn(byref(self))
@@ -283,6 +306,7 @@ class PciInfo(PrintableStructure):
         """
         from pynvml3.errors import Return
         from pynvml3.pynvml import NVMLLib
+
         # pci_info = self.nvml_device_get_pci_info()
         fn = NVMLLib().get_function_pointer("nvmlDeviceModifyDrainState")
         ret = fn(byref(self), new_state.as_c_type())
@@ -301,6 +325,7 @@ class PciInfo(PrintableStructure):
         """
         from pynvml3.errors import Return
         from pynvml3.pynvml import NVMLLib
+
         current_state = EnableState.c_type()
         pci_info = self  # .nvml_device_get_pci_info()
         fn = NVMLLib().get_function_pointer("nvmlDeviceQueryDrainState")
@@ -311,67 +336,67 @@ class PciInfo(PrintableStructure):
 
 class Memory(PrintableStructure):
     _fields_ = [
-        ('total', c_ulonglong),
-        ('free', c_ulonglong),
-        ('used', c_ulonglong),
+        ("total", c_ulonglong),
+        ("free", c_ulonglong),
+        ("used", c_ulonglong),
     ]
-    _fmt_ = {'<default>': "%d B"}
+    _fmt_ = {"<default>": "%d B"}
 
 
 class ProcessInfo(PrintableStructure):
     _fields_ = [
         # Process ID.
-        ('pid', c_uint),
+        ("pid", c_uint),
         # Amount of used GPU memory in bytes.
-        ('usedGpuMemory', c_ulonglong),
+        ("usedGpuMemory", c_ulonglong),
     ]
-    _fmt_ = {'usedGpuMemory': "%d B"}
+    _fmt_ = {"usedGpuMemory": "%d B"}
 
 
 class BridgeChipInfo(PrintableStructure):
     _fields_ = [
-        ('type', BridgeChipType.c_type),
-        ('fwVersion', c_uint),
+        ("type", BridgeChipType.c_type),
+        ("fwVersion", c_uint),
     ]
 
 
 class BridgeChipHierarchy(PrintableStructure):
     _fields_ = [
-        ('bridgeCount', c_uint),
-        ('bridgeChipInfo', BridgeChipInfo * 128),
+        ("bridgeCount", c_uint),
+        ("bridgeChipInfo", BridgeChipInfo * 128),
     ]
 
 
 class EccErrorCounts(PrintableStructure):
     _fields_ = [
-        ('l1Cache', c_ulonglong),
-        ('l2Cache', c_ulonglong),
-        ('deviceMemory', c_ulonglong),
-        ('registerFile', c_ulonglong),
+        ("l1Cache", c_ulonglong),
+        ("l2Cache", c_ulonglong),
+        ("deviceMemory", c_ulonglong),
+        ("registerFile", c_ulonglong),
     ]
 
 
 class Utilization(PrintableStructure):
     _fields_ = [
-        ('gpu', c_uint),
-        ('memory', c_uint),
+        ("gpu", c_uint),
+        ("memory", c_uint),
     ]
-    _fmt_ = {'<default>': "%d %%"}
+    _fmt_ = {"<default>": "%d %%"}
 
 
 class HwbcEntry(PrintableStructure):
     _fields_ = [
-        ('hwbcId', c_uint),
-        ('firmwareVersion', c_char * 32),
+        ("hwbcId", c_uint),
+        ("firmwareVersion", c_char * 32),
     ]
 
 
 class Value(Union):
     _fields_ = [
-        ('dVal', c_double),
-        ('uiVal', c_uint),
-        ('ulVal', c_ulong),
-        ('ullVal', c_ulonglong),
+        ("dVal", c_double),
+        ("uiVal", c_uint),
+        ("ulVal", c_ulong),
+        ("ullVal", c_ulonglong),
     ]
 
     def get_value(self, value_type):  # ValueType
@@ -380,15 +405,15 @@ class Value(Union):
 
 class RawSample(PrintableStructure):
     _fields_ = [
-        ('timeStamp', c_ulonglong),
-        ('sampleValue', Value),
+        ("timeStamp", c_ulonglong),
+        ("sampleValue", Value),
     ]
 
 
 class ViolationTime(PrintableStructure):
     _fields_ = [
-        ('referenceTime', c_ulonglong),
-        ('violationTime', c_ulonglong),
+        ("referenceTime", c_ulonglong),
+        ("violationTime", c_ulonglong),
     ]
 
 
@@ -404,47 +429,49 @@ class EventData(PrintableStructure):
     """
 
     _fields_ = [
-        ('device', CDevicePointer),
-        ('eventType', c_ulonglong),
-        ('eventData', c_ulonglong)
+        ("device", CDevicePointer),
+        ("eventType", c_ulonglong),
+        ("eventData", c_ulonglong),
     ]
-    _fmt_ = {'eventType': "0x%08X"}
+    _fmt_ = {"eventType": "0x%08X"}
 
 
 class AccountingStats(PrintableStructure):
     _fields_ = [
-        ('gpuUtilization', c_uint),
-        ('memoryUtilization', c_uint),
-        ('maxMemoryUsage', c_ulonglong),
-        ('time', c_ulonglong),
-        ('startTime', c_ulonglong),
-        ('isRunning', c_uint),
-        ('reserved', c_uint * 5)
+        ("gpuUtilization", c_uint),
+        ("memoryUtilization", c_uint),
+        ("maxMemoryUsage", c_ulonglong),
+        ("time", c_ulonglong),
+        ("startTime", c_ulonglong),
+        ("isRunning", c_uint),
+        ("reserved", c_uint * 5),
     ]
 
 
 class BAR1Memory(PrintableStructure):
     _fields_ = [
-        ('bar1Total', c_ulonglong),
-        ('bar1Free', c_ulonglong),
-        ('bar1Used', c_ulonglong),
+        ("bar1Total", c_ulonglong),
+        ("bar1Free", c_ulonglong),
+        ("bar1Used", c_ulonglong),
     ]
-    _fmt_ = {'<default>': "%d B"}
+    _fmt_ = {"<default>": "%d B"}
 
 
 #################################
 #          NVML DEVICE          #
 #################################
 
+
 class NvLinkUtilizationControl(PrintableStructure):
     _fields_ = [
-        ('units', NvLinkUtilizationCountUnits.c_type),
-        ('pktfilter', NvLinkUtilizationCountPktTypes.c_type)
+        ("units", NvLinkUtilizationCountUnits.c_type),
+        ("pktfilter", NvLinkUtilizationCountPktTypes.c_type),
     ]
 
 
 class FieldValue(PrintableStructure):
     """Information for a Field Value Sample"""
+
     _fields_ = [
         # ID of the NVML field to retrieve. This must be set before any call that uses this struct.
         # See the constants starting with NVML_FI_ above.
@@ -462,5 +489,5 @@ class FieldValue(PrintableStructure):
         # as value is undefined if nvmlReturn != NVML_SUCCESS
         ("nvmlReturn", Return.c_type),
         # Value for this field. This is only valid if nvmlReturn == NVML_SUCCESS
-        ("value", Value)
+        ("value", Value),
     ]
