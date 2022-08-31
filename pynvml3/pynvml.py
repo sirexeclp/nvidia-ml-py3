@@ -1,3 +1,5 @@
+"""Python wrapper for the NVML Library.
+
 ################################################################################
 # Copyright (c) 2011-2015, NVIDIA Corporation.  All rights reserved.           #
 #                                                                              #
@@ -25,13 +27,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF       #
 # THE POSSIBILITY OF SUCH DAMAGE.                                              #
 ################################################################################
-
+"""
 import os
 import sys
 from ctypes import *
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from pynvml3.device import Device, CDevicePointer
 from pynvml3.errors import (
@@ -44,6 +46,13 @@ from pynvml3.system import System
 from pynvml3.unit import CUnitPointer, Unit
 
 
+def checked_function_wrapper(func):
+    def checked_function(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        Return.check(ret)
+    return checked_function
+
+
 class NVMLLib:
     """Methods that handle NVML initialization and cleanup."""
 
@@ -54,16 +63,12 @@ class NVMLLib:
 
     def __enter__(self):
         """Initialize the library."""
-        fn = self.get_function_pointer("nvmlInit_v2")
-        ret = fn()
-        Return.check(ret)
+        Return.check(self.nvml_lib.nvmlInit_v2())
         return self
 
     def __exit__(self, *argc, **kwargs):
         """Leave the library loaded, but shutdown the interface."""
-        fn = self.get_function_pointer("nvmlShutdown")
-        ret = fn()
-        Return.check(ret)
+        Return.check(self.nvml_lib.nvmlShutdown())
 
     def open(self) -> None:
         """Initialize the library.
@@ -121,6 +126,13 @@ class NVMLLib:
         except AttributeError:
             raise NVMLErrorFunctionNotFound
 
+    def __getattribute__(self, name: str) -> Any:
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            nvml_lib = object.__getattribute__(self, "nvml_lib")
+            return checked_function_wrapper(getattr(nvml_lib, name))
+
     @property
     def unit(self) -> "UnitFactory":
         """Returns a new ``UnitFactory`` object, which can be used
@@ -162,7 +174,7 @@ class UnitFactory:
 
     """
 
-    def __init__(self, lib):
+    def __init__(self, lib: NVMLLib):
         self.lib = lib
 
     def from_index(self, index: int) -> Unit:
@@ -182,7 +194,7 @@ class UnitFactory:
 
         c_index = c_uint(index)
         unit = CUnitPointer()
-        fn = self.lib.get_function_pointer("nvmlUnitGetHandleByIndex")
+        fn = self.lib.nvml_lib.nvmlUnitGetHandleByIndex()
         ret = fn(c_index, byref(unit))
         Return.check(ret)
         return Unit(self.lib, unit)
@@ -291,9 +303,9 @@ class DeviceFactory:
         """
         c_index = c_uint(index)
         handle = CDevicePointer()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetHandleByIndex_v2")
+        fn = self.lib.nvmlDeviceGetHandleByIndex_v2
+        print(fn)
         ret = fn(c_index, byref(handle))
-        Return.check(ret)
         return Device(self.lib, handle)
 
     def from_serial(self, serial: str) -> "Device":
