@@ -34,8 +34,11 @@ from pathlib import Path
 from typing import List
 
 from pynvml3.device import Device, CDevicePointer
-from pynvml3.errors import NVMLErrorFunctionNotFound,\
-    NVMLErrorSharedLibraryNotFound, Return
+from pynvml3.errors import (
+    NVMLErrorFunctionNotFound,
+    NVMLErrorSharedLibraryNotFound,
+    Return,
+)
 from pynvml3.event_set import EventSet
 from pynvml3.system import System
 from pynvml3.unit import CUnitPointer, Unit
@@ -100,12 +103,16 @@ class NVMLLib:
         """Computes search paths for the library on Windows."""
         program_files = Path(os.getenv("ProgramFiles", r"C:\Program Files"))
         win_dir = Path(os.getenv("WinDir", r"C:\Windows"))
-        paths = [program_files / r"NVIDIA Corporation\NVSMI\nvml.dll",
-                 win_dir / r"System32\nvml.dll"]
+        paths = [
+            program_files / r"NVIDIA Corporation\NVSMI\nvml.dll",
+            win_dir / r"System32\nvml.dll",
+        ]
         return paths
 
     @lru_cache(maxsize=None)
-    def get_function_pointer(self, name: str) -> "ctypes.CDLL.__init__.<locals>._FuncPtr":
+    def get_function_pointer(
+        self, name: str
+    ) -> "ctypes.CDLL.__init__.<locals>._FuncPtr":
         """Returns a function pointer for the given function name.
         Caching is used for YOUR convenience.
         """
@@ -117,7 +124,7 @@ class NVMLLib:
     @property
     def unit(self) -> "UnitFactory":
         """Returns a new ``UnitFactory`` object, which can be used
-         to build Unit-Objects in several ways.
+        to build Unit-Objects in several ways.
 
         """
 
@@ -126,7 +133,7 @@ class NVMLLib:
     @property
     def device(self) -> "DeviceFactory":
         """Returns a new ``DeviceFactory`` object, which can be used
-         to build Device(GPU)-Objects in several ways.
+        to build Device(GPU)-Objects in several ways.
 
         """
 
@@ -135,7 +142,7 @@ class NVMLLib:
     @property
     def system(self) -> "System":
         """Returns a new ``System`` object, which can be used
-         to get system related information.
+        to get system related information.
 
         """
 
@@ -150,8 +157,8 @@ class NVMLLib:
 
 class UnitFactory:
     """This ``UnitFactory`` is used to create ``Unit`` objects
-         in various ways. It ensures, that each ``Unit`` gets a reference
-         to the :class:`NVMLLib`.
+    in various ways. It ensures, that each ``Unit`` gets a reference
+    to the :class:`NVMLLib`.
 
     """
 
@@ -195,16 +202,32 @@ class UnitFactory:
 
 class DeviceFactory:
     """This ``DeviceFactory`` is used to create ``Device`` objects
-     in various ways. It ensures, that each ``Device`` gets a reference
-     to the :class:`NVMLLib`.
+    in various ways. It ensures, that each ``Device`` gets a reference
+    to the :class:`NVMLLib`.
 
-     """
+    """
 
     def __init__(self, lib):
         self.lib = lib
+        self.iter_index = 0
+        self._len = self.get_count()
 
-    # @staticmethod
-    def get_count(self, permission:bool=False) -> int:
+    def __len__(self) -> int:
+        return self._len
+
+    def __iter__(self):
+        self.iter_index = 0
+        return self
+
+    def __next__(self):
+        try:
+            result = self[self.iter_index]
+        except IndexError:
+            raise StopIteration
+        self.iter_index += 1
+        return result
+
+    def get_count(self, permission: bool = False) -> int:
         """Retrieves the number of compute devices in the system.
         A compute device is a single GPU.
 
@@ -230,7 +253,14 @@ class DeviceFactory:
         Return.check(ret)
         return c_count.value
 
-    def from_index(self, index: int) -> "Device":
+    def __getitem__(self, key: int) -> Device:
+        if not isinstance(key, int):
+            raise ValueError(f"GPU Device Index bust be an integer not {type(key)}.")
+        if key < 0 or key >= len(self):
+            raise IndexError()
+        return self.from_index(key)
+
+    def from_index(self, index: int) -> Device:
         """Acquire the handle for a particular device, based on its index.
 
         Valid indices are derived from the accessibleDevices count returned by
