@@ -60,11 +60,11 @@ from pynvml3.structs import (
 
 
 class Device:
-    """
-    Queries that NVML can perform against each device.
+    """Queries that NVML can perform against each device.
+
     In each case the device is identified with an nvmlDevice_t handle.
     This handle is obtained by calling one of nvmlDeviceGetHandleByIndex(),
-     nvmlDeviceGetHandleBySerial(), nvmlDeviceGetHandleByPciBusId() or nvmlDeviceGetHandleByUUID().
+    nvmlDeviceGetHandleBySerial(), nvmlDeviceGetHandleByPciBusId() or nvmlDeviceGetHandleByUUID().
     """
 
     INFOROM_VERSION_BUFFER_SIZE = 16
@@ -74,8 +74,7 @@ class Device:
     VBIOS_VERSION_BUFFER_SIZE = 32
     PCI_BUS_ID_BUFFER_SIZE = 16
 
-    def __init__(self, lib, handle: pointer):
-        # super().__init__()
+    def __init__(self, lib: "NVMLLib", handle: pointer):
         self.lib = lib
         self.handle = handle
 
@@ -98,12 +97,10 @@ class Device:
         @return: clock in MHz
         @rtype: int
         """
-        fn = self.lib.get_function_pointer("nvmlDeviceGetClock")
         clock_mhz = c_uint()
-        ret = fn(
+        self.lib.nvmlDeviceGetClock(
             self.handle, clock_type.as_c_type(), clock_id.as_c_type(), byref(clock_mhz)
         )
-        Return.check(ret)
         return clock_mhz.value
 
     def get_cuda_compute_capability(self) -> Tuple[int, int]:
@@ -113,31 +110,29 @@ class Device:
         @rtype:
         """
         major, minor = c_int(), c_int()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetCudaComputeCapability")
-        ret = fn(self.handle, byref(major), byref(minor))
-        Return.check(ret)
+        fn = self.lib.nvmlDeviceGetCudaComputeCapability(
+            self.handle, byref(major), byref(minor)
+        )
         return major.value, minor.value
 
     def get_max_customer_boost_clock(self, clock_type: ClockType) -> int:
-        """Retrieves the customer defined maximum boost clock speed specified by the given clock type."""
-        fn = self.lib.get_function_pointer("nvmlDeviceGetMaxCustomerBoostClock")
+        """Retrieves the customer defined maximum boost clock speed for the given clock type."""
         clock_mhz = c_uint()
-        ret = fn(self.handle, clock_type.as_c_type(), byref(clock_mhz))
-        Return.check(ret)
+        self.lib.nvmlDeviceGetMaxCustomerBoostClock(
+            self.handle, clock_type.as_c_type(), byref(clock_mhz)
+        )
         return clock_mhz.value
 
     def get_total_energy_consumption(self) -> int:
-        """
-        Retrieves total energy consumption for this GPU in millijoules (mJ) since the driver was last reloaded
+        """Retrieves total energy consumption for this GPU in millijoules (mJ)
+        since the driver was last reloaded.
 
         VOLTA_OR_NEWER
         @return: energy consumption for this GPU in millijoules (mJ)
         @rtype: int
         """
-        fn = self.lib.get_function_pointer("nvmlDeviceGetTotalEnergyConsumption")
         energy = c_ulonglong()
-        ret = fn(self.handle, byref(energy))
-        Return.check(ret)
+        fn = self.lib.nvmlDeviceGetTotalEnergyConsumption(self.handle, byref(energy))
         return energy.value
 
     #################################
@@ -200,9 +195,9 @@ class Device:
     def set_applications_clocks(
         self, max_mem_clock_mhz: int, max_graphics_clock_mhz: int
     ) -> None:
-        fn = self.lib.get_function_pointer("nvmlDeviceSetApplicationsClocks")
-        ret = fn(self.handle, c_uint(max_mem_clock_mhz), c_uint(max_graphics_clock_mhz))
-        Return.check(ret)
+        self.lib.nvmlDeviceSetApplicationsClocks(
+            self.handle, c_uint(max_mem_clock_mhz), c_uint(max_graphics_clock_mhz)
+        )
 
     def set_compute_mode(self, mode: ComputeMode) -> None:
         fn = self.lib.get_function_pointer("nvmlDeviceSetComputeMode")
@@ -1088,9 +1083,7 @@ class Device:
 
     def get_accounting_stats(self, pid: int) -> AccountingStats:
         stats = AccountingStats()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingStats")
-        ret = fn(self.handle, c_uint(pid), byref(stats))
-        Return.check(ret)
+        fn = self.lib.nvmlDeviceGetAccountingStats(self.handle, c_uint(pid), byref(stats))
         if stats.maxMemoryUsage == VALUE_NOT_AVAILABLE_ulonglong:
             # special case for WDDM on Windows, see comment above
             stats.maxMemoryUsage = None
@@ -1098,17 +1091,13 @@ class Device:
 
     def get_accounting_buffer_size(self) -> int:
         bufferSize = c_uint()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingBufferSize")
-        ret = fn(self.handle, byref(bufferSize))
-        Return.check(ret)
+        self.lib.nvmlDeviceGetAccountingBufferSize(self.handle, byref(bufferSize))
         return bufferSize.value
 
     def get_accounting_pids(self) -> List[int]:
         count = c_uint(self.get_accounting_buffer_size())
         pids = (c_uint * count.value)()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetAccountingPids")
-        ret = fn(self.handle, byref(count), pids)
-        Return.check(ret)
+        self.lib.nvmlDeviceGetAccountingPids(self.handle, byref(count), pids)
         return list(pids)
 
     def get_retired_pages(self, source_filter: PageRetirementCause) -> List[int]:
