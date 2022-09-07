@@ -1,5 +1,10 @@
-from ctypes import c_uint
+from ctypes import c_char_p, c_uint
 from enum import Enum, EnumMeta
+
+
+def to_c_str(python_str: str):
+    """Convert the python string to a c string."""
+    return c_char_p(str(python_str).encode("ASCII"))
 
 
 class MetaEnum(EnumMeta):
