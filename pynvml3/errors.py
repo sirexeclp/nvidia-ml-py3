@@ -74,22 +74,22 @@ class Return(UIntEnum):
 
     @staticmethod
     def check(ret: int, *args):
-        if ret == Return.SUCCESS.value:
-            return Return(ret)
-        else:
+        """Check the return-value; raises an Exception, if not successful."""
+        if ret != Return.SUCCESS.value:
             raise NVMLError.from_return(ret)(*args)
 
 
 class NVMLError(Exception):
-    def __init__(self, return_value: int):
+    def __init__(self, return_value: int, *args):
         self.return_value = return_value
+        self.args = args
 
     def __str__(self):
         try:
             if self.return_value not in Return:
                 return str(self.get_error_string())
             else:
-                return str(Return(self.return_value))
+                return str(Return(self.return_value)) + str(self.args)
         except NVMLErrorUninitialized:
             return "NVML Error with code %d" % self.return_value
 
@@ -125,8 +125,8 @@ class NVMLErrorInvalidArgument(NVMLError):
 
 
 class NVMLErrorNotSupported(NVMLError):
-    def __init__(self):
-        super().__init__(Return.ERROR_NOT_SUPPORTED.value)
+    def __init__(self, *args):
+        super().__init__(Return.ERROR_NOT_SUPPORTED.value, *args)
 
 
 class NVMLErrorInsufficientPermissions(NVMLError):
@@ -141,11 +141,7 @@ class NVMLErrorAlreadyInitialized(NVMLError):
 
 class NVMLErrorNotFound(NVMLError):
     def __init__(self, *args):
-        super().__init__(Return.ERROR_NOT_FOUND.value)
-        self.args = args
-
-    def __str__(self):
-        return super(NVMLErrorNotFound, self).__str__() + str(self.args)
+        super().__init__(Return.ERROR_NOT_FOUND.value, *args)
 
 
 class NVMLErrorInsufficientSize(NVMLError):
