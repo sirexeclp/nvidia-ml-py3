@@ -42,7 +42,7 @@ class PowerLimit:
 
     def __enter__(self):
         if self.power_limit is None:
-            self.device.set_power_management_limit(self.max_limit)
+            # do nothing, as we might not have permissions
             return
         if self.set_default:
             self.default_value = self.device.get_power_management_default_limit()
@@ -102,7 +102,7 @@ class ApplicationClockLimit:
 
     def __enter__(self):
         if self.mem_clock is None or self.sm_clock is None:
-            self.device.reset_applications_clocks()
+            # do nothing, as we might not have permissions
             return
         if not self.set_default:
             self.default_mem_clock = self.device.get_applications_clock(ClockType.MEM)
