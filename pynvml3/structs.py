@@ -147,6 +147,20 @@ class CEventSet(Structure):
 CEventSetPointer = POINTER(CEventSet)
 
 
+class CGpuInstance(Structure):
+    pass  # opaque handle
+
+
+CGpuInstancePointer = POINTER(CGpuInstance)
+
+
+class CComputeInstance(Structure):
+    pass  # opaque handle
+
+
+CComputeInstancePointer = POINTER(CComputeInstance)
+
+
 class UnitInfo(PrintableStructure):
     """Info about the unit."""
 
@@ -502,39 +516,70 @@ class FieldValue(PrintableStructure):
     ]
 
 
-
 class GpuInstanceProfileInfo(PrintableStructure):
-    _fields_ = [("id", c_uint),
-                ("isP2pSupported", c_uint),
-                ("sliceCount", c_uint),
-                ("instanceCount", c_uint),
-                ("multiprocessorCount", c_uint),
-                ("copyEngineCount", c_uint),
-                ("decoderCount", c_uint),
-                ("encoderCount", c_uint),
-                ("jpegCount", c_uint),
-                ("ofaCount", c_uint),
-                ("memorySizeMB", c_ulonglong),
-               ]
+    _fields_ = [
+        ("id", c_uint),
+        ("isP2pSupported", c_uint),
+        ("sliceCount", c_uint),
+        ("instanceCount", c_uint),
+        ("multiprocessorCount", c_uint),
+        ("copyEngineCount", c_uint),
+        ("decoderCount", c_uint),
+        ("encoderCount", c_uint),
+        ("jpegCount", c_uint),
+        ("ofaCount", c_uint),
+        ("memorySizeMB", c_ulonglong),
+    ]
 
 
 nvmlGpuInstanceProfileInfo_v2 = 0x02000098
 
+
 class GpuInstanceProfileInfo_v2(PrintableStructure):
-    _fields_ = [("version", c_uint),
-                ("id", c_uint),
-                ("isP2pSupported", c_uint),
-                ("sliceCount", c_uint),
-                ("instanceCount", c_uint),
-                ("multiprocessorCount", c_uint),
-                ("copyEngineCount", c_uint),
-                ("decoderCount", c_uint),
-                ("encoderCount", c_uint),
-                ("jpegCount", c_uint),
-                ("ofaCount", c_uint),
-                ("memorySizeMB", c_ulonglong),
-                ("name", c_char * NVML_DEVICE_NAME_V2_BUFFER_SIZE)
-               ]
-    
+    _fields_ = [
+        ("version", c_uint),
+        ("id", c_uint),
+        ("isP2pSupported", c_uint),
+        ("sliceCount", c_uint),
+        ("instanceCount", c_uint),
+        ("multiprocessorCount", c_uint),
+        ("copyEngineCount", c_uint),
+        ("decoderCount", c_uint),
+        ("encoderCount", c_uint),
+        ("jpegCount", c_uint),
+        ("ofaCount", c_uint),
+        ("memorySizeMB", c_ulonglong),
+        ("name", c_char * NVML_DEVICE_NAME_V2_BUFFER_SIZE),
+    ]
+
     def __init__(self):
-        super(GpuInstanceProfileInfo_v2, self).__init__(version=nvmlGpuInstanceProfileInfo_v2)
+        super(GpuInstanceProfileInfo_v2, self).__init__(
+            version=nvmlGpuInstanceProfileInfo_v2
+        )
+
+
+class GpuInstancePlacement(Structure):
+    _fields_ = [("start", c_uint), ("size", c_uint)]
+
+
+class GpuInstanceInfo(Structure):
+    _fields_ = [
+        ("device", CDevicePointer),
+        ("id", c_uint),
+        ("profileId", c_uint),
+        ("placement", GpuInstancePlacement),
+    ]
+
+
+class ComputeInstancePlacement(Structure):
+    _fields_ = [("start", c_uint), ("size", c_uint)]
+
+
+class ComputeInstanceInfo(Structure):
+    _fields_ = [
+        ("device", CDevicePointer),
+        ("gpuInstance", CComputeInstancePointer),
+        ("id", c_uint),
+        ("profileId", c_uint),
+        ("placement", ComputeInstancePlacement),
+    ]

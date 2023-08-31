@@ -1,3 +1,4 @@
+from functools import lru_cache
 import math
 import os
 from ctypes import (
@@ -39,12 +40,21 @@ from pynvml3.enums import (
     PcieUtilCounter,
     GpuTopologyLevel,
 )
-from pynvml3.errors import NVMLErrorFunctionNotFound, Return, NVMLError, NVMLErrorNotFound
+from pynvml3.errors import (
+    NVMLErrorFunctionNotFound,
+    NVMLErrorInvalidArgument,
+    NVMLErrorNotSupported,
+    Return,
+    NVMLError,
+    NVMLErrorNotFound,
+)
 from pynvml3.event_set import EventSet
 from pynvml3.flags import EventType
+from pynvml3.mig import GpuInstance
 from pynvml3.nvlink import NvLink
 from pynvml3.structs import (
     CDevicePointer,
+    CGpuInstancePointer,
     FieldValue,
     GpuInstanceProfileInfo,
     GpuInstanceProfileInfo_v2,
@@ -81,13 +91,13 @@ class Device:
         self.lib = lib
         self.handle = handle
 
-
     def __getitem__(self, key):
         fn_name = f"nvmlDevice{key}"
         func = self.lib.get_function_pointer(fn_name, check=True)
 
         def function_with_handle(*args, **kwargs):
             return func(self.handle, *args, **kwargs)
+
         return function_with_handle
 
     #
@@ -994,7 +1004,8 @@ class Device:
     def get_supported_event_types(self) -> EventType:
         """Returns information about events supported on device
         FERMI_OR_NEWER
-        Events are not supported on Windows. So this function returns an empty mask in eventTypes on Windows."""
+        Events are not supported on Windows. So this function returns an empty mask in eventTypes on Windows.
+        """
         c_eventTypes = c_ulonglong()
         fn = self.lib.get_function_pointer("nvmlDeviceGetSupportedEventTypes")
         ret = fn(self.handle, byref(c_eventTypes))
@@ -1095,7 +1106,9 @@ class Device:
 
     def get_accounting_stats(self, pid: int) -> AccountingStats:
         stats = AccountingStats()
-        fn = self.lib.nvmlDeviceGetAccountingStats(self.handle, c_uint(pid), byref(stats))
+        fn = self.lib.nvmlDeviceGetAccountingStats(
+            self.handle, c_uint(pid), byref(stats)
+        )
         if stats.maxMemoryUsage == VALUE_NOT_AVAILABLE_ulonglong:
             # special case for WDDM on Windows, see comment above
             stats.maxMemoryUsage = None
@@ -1273,19 +1286,21 @@ class Device:
         Return.check(ret)
         return GpuTopologyLevel(c_level.value)
 
-    def nvmlDeviceSetMigMode(self, mode: EnableState):
+    def set_mig_mode(self, mode: EnableState):
+        """Enable or disable mig on this device."""
         c_activationStatus = c_uint()
         self["SetMigMode"](mode.as_c_type(), byref(c_activationStatus))
         return c_activationStatus.value
 
-    def nvmlDeviceGetMigMode(self):
-        """Return MigMode as tuple[current_mode, pending_mode]."""
+    def get_mig_mode(self):
+        """Return mig mode as tuple[current_mode, pending_mode]."""
         c_currentMode = c_uint()
         c_pendingMode = c_uint()
         self["GetMigMode"](byref(c_currentMode), byref(c_pendingMode))
         return EnableState(c_currentMode.value), EnableState(c_pendingMode.value)
 
-    def nvmlDeviceGetGpuInstanceProfileInfo(self, profile: GpuInstanceProfile, version=2):
+    @lru_cache(maxsize=None)
+    def get_gpu_instance_profile_info(self, profile: GpuInstanceProfile, version=2):
         if version == 2:
             c_info = GpuInstanceProfileInfo_v2()
             fn = self["GetGpuInstanceProfileInfoV"]
@@ -1298,13 +1313,37 @@ class Device:
         return c_info
 
     # Define function alias for the API exposed by NVML
-    def nvmlDeviceGetGpuInstanceProfileInfoV(self, *args, **kwargs):
-        return self.nvmlDeviceGetGpuInstanceProfileInfo(*args, **kwargs)
+    def get_gpu_instance_profile_info_v(self, *args, **kwargs):
+        return self.get_gpu_instance_profile_info(*args, **kwargs)
 
-    def nvmlDeviceGetGpuInstanceRemainingCapacity(self, profileId: int):
+    def get_supported_gpu_instance_profiles(
+        self, version=2
+    ) -> dict[GpuInstanceProfile, GpuInstanceProfileInfo | GpuInstanceProfileInfo_v2]:
+        supported_profiles = {}
+        for profile in GpuInstanceProfile:
+            try:
+                info = self.get_gpu_instance_profile_info(profile, version=version)
+                supported_profiles[profile] = info
+            except NVMLErrorNotSupported:
+                pass
+            except NVMLErrorInvalidArgument:
+                pass
+        return supported_profiles
+
+    def get_gpu_instance_remaining_capacity(
+        self, profile: GpuInstanceProfile, version=2
+    ) -> int:
         c_count = c_uint()
-        self["GetGpuInstanceRemainingCapacity"](profileId, byref(c_count))
+        info = self.get_gpu_instance_profile_info(profile, version=version)
+        self["GetGpuInstanceRemainingCapacity"](info.id, byref(c_count))
         return c_count.value
+
+    def create_gpu_instance(self, profile: GpuInstanceProfile, version=2):
+        gpu_instance_handle = CGpuInstancePointer()
+        info = self.get_gpu_instance_profile_info(profile, version=version)
+        self["CreateGpuInstance"](info.id, byref(gpu_instance_handle))
+        return GpuInstance(self.lib, gpu_instance_handle)
+
 
 # def nvmlDeviceGetGpuInstancePossiblePlacements(device, profileId, placementsRef, countRef):
 #     fn = _nvmlGetFunctionPointer("nvmlDeviceGetGpuInstancePossiblePlacements_v2")
@@ -1312,12 +1351,6 @@ class Device:
 #     _nvmlCheckReturn(ret)
 #     return ret
 
-# def nvmlDeviceCreateGpuInstance(device, profileId):
-#     c_instance = c_nvmlGpuInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlDeviceCreateGpuInstance")
-#     ret = fn(device, profileId, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
 
 # def nvmlDeviceCreateGpuInstanceWithPlacement(device, profileId, placement):
 #     c_instance = c_nvmlGpuInstance_t()
@@ -1326,11 +1359,6 @@ class Device:
 #     _nvmlCheckReturn(ret)
 #     return c_instance
 
-# def nvmlGpuInstanceDestroy(gpuInstance):
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceDestroy")
-#     ret = fn(gpuInstance)
-#     _nvmlCheckReturn(ret)
-#     return ret
 
 # def nvmlDeviceGetGpuInstances(device, profileId, gpuInstancesRef, countRef):
 #     fn = _nvmlGetFunctionPointer("nvmlDeviceGetGpuInstances")
@@ -1345,84 +1373,6 @@ class Device:
 #     _nvmlCheckReturn(ret)
 #     return c_instance
 
-# def nvmlGpuInstanceGetInfo(gpuInstance):
-#     c_info = c_nvmlGpuInstanceInfo_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetInfo")
-#     ret = fn(gpuInstance, byref(c_info))
-#     _nvmlCheckReturn(ret)
-#     return c_info
-
-# def nvmlGpuInstanceGetComputeInstanceProfileInfo(device, profile, engProfile, version=2):
-#     if version == 2:
-#         c_info = c_nvmlComputeInstanceProfileInfo_v2_t()
-#         fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceProfileInfoV")
-#     elif version == 1:
-#         c_info = c_nvmlComputeInstanceProfileInfo_t()
-#         fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceProfileInfo")
-#     else:
-#         raise NVMLError(NVML_ERROR_FUNCTION_NOT_FOUND) 
-#     ret = fn(device, profile, engProfile, byref(c_info))
-#     _nvmlCheckReturn(ret)
-#     return c_info
-
-# # Define function alias for the API exposed by NVML
-# nvmlGpuInstanceGetComputeInstanceProfileInfoV = nvmlGpuInstanceGetComputeInstanceProfileInfo
-
-# def nvmlGpuInstanceGetComputeInstanceRemainingCapacity(gpuInstance, profileId):
-#     c_count = c_uint()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceRemainingCapacity")
-#     ret = fn(gpuInstance, profileId, byref(c_count))
-#     _nvmlCheckReturn(ret)
-#     return c_count.value
-
-# def nvmlGpuInstanceGetComputeInstancePossiblePlacements(gpuInstance, profileId, placementsRef, countRef):
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstancePossiblePlacements")
-#     ret = fn(gpuInstance, profileId, placementsRef, countRef)
-#     _nvmlCheckReturn(ret)
-#     return ret
-
-# def nvmlGpuInstanceCreateComputeInstance(gpuInstance, profileId):
-#     c_instance = c_nvmlComputeInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceCreateComputeInstance")
-#     ret = fn(gpuInstance, profileId, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
-
-# def nvmlGpuInstanceCreateComputeInstanceWithPlacement(gpuInstance, profileId, placement):
-#     c_instance = c_nvmlComputeInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceCreateComputeInstanceWithPlacement")
-#     ret = fn(gpuInstance, profileId, placement, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
-
-# def nvmlComputeInstanceDestroy(computeInstance):
-#     fn = _nvmlGetFunctionPointer("nvmlComputeInstanceDestroy")
-#     ret = fn(computeInstance)
-#     _nvmlCheckReturn(ret)
-#     return ret
-
-# def nvmlGpuInstanceGetComputeInstances(gpuInstance, profileId, computeInstancesRef, countRef):
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstances")
-#     ret = fn(gpuInstance, profileId, computeInstancesRef, countRef)
-#     _nvmlCheckReturn(ret)
-#     return ret
-
-# def nvmlGpuInstanceGetComputeInstanceById(gpuInstance, computeInstanceId):
-#     c_instance = c_nvmlComputeInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceById")
-#     ret = fn(gpuInstance, computeInstanceId, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
-
-# def nvmlComputeInstanceGetInfo_v2(computeInstance):
-#     c_info = c_nvmlComputeInstanceInfo_t()
-#     fn = _nvmlGetFunctionPointer("nvmlComputeInstanceGetInfo_v2")
-#     ret = fn(computeInstance, byref(c_info))
-#     _nvmlCheckReturn(ret)
-#     return c_info
-
-# def nvmlComputeInstanceGetInfo(computeInstance):
-#     return nvmlComputeInstanceGetInfo_v2(computeInstance)
 
 # def nvmlDeviceIsMigDeviceHandle(device):
 #     c_isMigDevice = c_uint()

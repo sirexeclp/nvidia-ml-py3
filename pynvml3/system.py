@@ -59,7 +59,8 @@ class System:
         """Retrieves the IDs and firmware versions for any Host Interface Cards (HICs) in the system.
         S_CLASS
         The hwbcCount argument is expected to be set to the size of the input hwbcEntries array.
-        The HIC must be connected to an S-class system for it to be reported by this function."""
+        The HIC must be connected to an S-class system for it to be reported by this function.
+        """
         c_count = c_uint(0)
         hics = None
         fn = self.lib.get_function_pointer("nvmlSystemGetHicVersion")

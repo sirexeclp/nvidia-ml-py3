@@ -90,10 +90,12 @@ class NVMLLib:
         """Load the library."""
         try:
             if sys.platform[:3] == "win":
-                nvml_path = next((x for x in self._get_search_paths() if x.is_file()), None)
+                nvml_path = next(
+                    (x for x in self._get_search_paths() if x.is_file()), None
+                )
                 if nvml_path is None:
                     raise NVMLErrorSharedLibraryNotFound
-                
+
                 # cdecl calling convention
                 self.nvml_lib = CDLL(str(nvml_path))
             else:
@@ -109,12 +111,15 @@ class NVMLLib:
         """Computes search paths for the library on Windows."""
         return [
             Path(os.getenv("WinDir", r"C:/Windows"), "System32/nvml.dll"),
-            Path(os.getenv("ProgramFiles", r"C:/Program Files"), "NVIDIA Corporation/NVSMI/nvml.dll"),
+            Path(
+                os.getenv("ProgramFiles", r"C:/Program Files"),
+                "NVIDIA Corporation/NVSMI/nvml.dll",
+            ),
         ]
 
     @lru_cache(maxsize=None)
     def get_function_pointer(
-        self, name: str, check: bool=False
+        self, name: str, check: bool = False
     ) -> "ctypes.CDLL.__init__.<locals>._FuncPtr":
         """Returns a function pointer for the given function name.
         Caching is used for YOUR convenience.
