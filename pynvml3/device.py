@@ -1279,10 +1279,11 @@ class Device:
         return c_activationStatus.value
 
     def nvmlDeviceGetMigMode(self):
+        """Return MigMode as tuple[current_mode, pending_mode]."""
         c_currentMode = c_uint()
         c_pendingMode = c_uint()
         self["GetMigMode"](byref(c_currentMode), byref(c_pendingMode))
-        return c_currentMode.value, c_pendingMode.value
+        return EnableState(c_currentMode.value), EnableState(c_pendingMode.value)
 
     def nvmlDeviceGetGpuInstanceProfileInfo(self, profile: GpuInstanceProfile, version=2):
         if version == 2:
