@@ -11,3 +11,7 @@ VALUE_NOT_AVAILABLE_ulonglong = c_ulonglong(-1)
 VALUE_NOT_AVAILABLE_uint = c_uint(-1)
 
 NVML_NVLINK_MAX_LINKS = 6
+
+NVML_DEVICE_NAME_V2_BUFFER_SIZE = 96
+
+

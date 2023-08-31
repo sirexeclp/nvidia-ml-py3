@@ -606,3 +606,17 @@ class FieldId(UIntEnum):
     """PCIe replay counter"""
     PCIE_REPLAY_ROLLOVER_COUNTER = 95
     """PCIe replay rollover counter"""
+
+
+class GpuInstanceProfile(UIntEnum):
+    PROFILE_1_SLICE      = 0x0
+    PROFILE_2_SLICE      = 0x1
+    PROFILE_3_SLICE      = 0x2
+    PROFILE_4_SLICE      = 0x3
+    PROFILE_7_SLICE      = 0x4
+    PROFILE_8_SLICE      = 0x5
+    PROFILE_6_SLICE      = 0x6
+    PROFILE_1_SLICE_REV1 = 0x7
+    PROFILE_2_SLICE_REV1 = 0x8
+    PROFILE_1_SLICE_REV2 = 0x9
+    PROFILE_COUNT        = 0xA

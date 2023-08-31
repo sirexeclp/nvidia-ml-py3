@@ -90,17 +90,16 @@ class NVMLLib:
         """Load the library."""
         try:
             if sys.platform[:3] == "win":
-                search_paths = self._get_search_paths()
-                nvml_path = next((x for x in search_paths if x.is_file()), None)
+                nvml_path = next((x for x in self._get_search_paths() if x.is_file()), None)
                 if nvml_path is None:
                     raise NVMLErrorSharedLibraryNotFound
-                else:
-                    # cdecl calling convention
-                    self.nvml_lib = CDLL(str(nvml_path))
+                
+                # cdecl calling convention
+                self.nvml_lib = CDLL(str(nvml_path))
             else:
                 # assume linux
                 self.nvml_lib = CDLL("libnvidia-ml.so.1")
-        except OSError as ose:
+        except OSError:
             raise NVMLErrorSharedLibraryNotFound
         if self.nvml_lib is None:
             raise NVMLErrorSharedLibraryNotFound
@@ -108,23 +107,23 @@ class NVMLLib:
     @staticmethod
     def _get_search_paths() -> List[Path]:
         """Computes search paths for the library on Windows."""
-        program_files = Path(os.getenv("ProgramFiles", r"C:\Program Files"))
-        win_dir = Path(os.getenv("WinDir", r"C:\Windows"))
-        paths = [
-            program_files / r"NVIDIA Corporation\NVSMI\nvml.dll",
-            win_dir / r"System32\nvml.dll",
+        return [
+            Path(os.getenv("WinDir", r"C:/Windows"), "System32/nvml.dll"),
+            Path(os.getenv("ProgramFiles", r"C:/Program Files"), "NVIDIA Corporation/NVSMI/nvml.dll"),
         ]
-        return paths
 
     @lru_cache(maxsize=None)
     def get_function_pointer(
-        self, name: str
+        self, name: str, check: bool=False
     ) -> "ctypes.CDLL.__init__.<locals>._FuncPtr":
         """Returns a function pointer for the given function name.
         Caching is used for YOUR convenience.
         """
         try:
-            return getattr(self.nvml_lib, name)
+            fn = getattr(self.nvml_lib, name)
+            if check:
+                return checked_function_wrapper(fn)
+            return fn
         except AttributeError:
             raise NVMLErrorFunctionNotFound
 

@@ -15,6 +15,7 @@ from ctypes import (
     c_longlong,
 )
 from typing import NamedTuple
+from pynvml3.constants import NVML_DEVICE_NAME_V2_BUFFER_SIZE
 
 from pynvml3.enums import (
     LedColor,
@@ -499,3 +500,41 @@ class FieldValue(PrintableStructure):
         # Value for this field. This is only valid if nvmlReturn == NVML_SUCCESS
         ("value", Value),
     ]
+
+
+
+class GpuInstanceProfileInfo(PrintableStructure):
+    _fields_ = [("id", c_uint),
+                ("isP2pSupported", c_uint),
+                ("sliceCount", c_uint),
+                ("instanceCount", c_uint),
+                ("multiprocessorCount", c_uint),
+                ("copyEngineCount", c_uint),
+                ("decoderCount", c_uint),
+                ("encoderCount", c_uint),
+                ("jpegCount", c_uint),
+                ("ofaCount", c_uint),
+                ("memorySizeMB", c_ulonglong),
+               ]
+
+
+nvmlGpuInstanceProfileInfo_v2 = 0x02000098
+
+class GpuInstanceProfileInfo_v2(PrintableStructure):
+    _fields_ = [("version", c_uint),
+                ("id", c_uint),
+                ("isP2pSupported", c_uint),
+                ("sliceCount", c_uint),
+                ("instanceCount", c_uint),
+                ("multiprocessorCount", c_uint),
+                ("copyEngineCount", c_uint),
+                ("decoderCount", c_uint),
+                ("encoderCount", c_uint),
+                ("jpegCount", c_uint),
+                ("ofaCount", c_uint),
+                ("memorySizeMB", c_ulonglong),
+                ("name", c_char * NVML_DEVICE_NAME_V2_BUFFER_SIZE)
+               ]
+    
+    def __init__(self):
+        super(GpuInstanceProfileInfo_v2, self).__init__(version=nvmlGpuInstanceProfileInfo_v2)
