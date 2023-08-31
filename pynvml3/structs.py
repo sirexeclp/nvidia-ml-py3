@@ -105,7 +105,7 @@ class PrintableStructure(Structure):
             elif "<default>" in self._fmt_:
                 fmt = self._fmt_["<default>"]
             result.append(("%s: " + fmt) % (key, value))
-        return self.__class__.__name__ + "(" + string.join(result, ", ") + ")"
+        return self.__class__.__name__ + "(" + ", ".join(result) + ")"
 
     def get_friendly_object(self):
         d = {}
