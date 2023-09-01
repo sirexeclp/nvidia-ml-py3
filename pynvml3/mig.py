@@ -1,6 +1,16 @@
-from ctypes import byref, pointer
+from ctypes import byref, c_uint, pointer
+from pynvml3.enums import ComputeInstanceEngineProfile, ComputeInstanceProfile
+from pynvml3.errors import NVMLErrorFunctionNotFound
 
-from pynvml3.structs import CComputeInstancePointer, ComputeInstanceInfo, GpuInstanceInfo
+from pynvml3.structs import (
+    CComputeInstancePointer,
+    CDevicePointer,
+    ComputeInstanceInfo,
+    ComputeInstancePlacement,
+    ComputeInstanceProfileInfo,
+    ComputeInstanceProfileInfo_v2,
+    GpuInstanceInfo,
+)
 
 
 class ComputeInstance:
@@ -51,57 +61,109 @@ class GpuInstance:
         self["GetInfo"](byref(info))
         return info
 
-    def create_compute_instance(self, profileId):
+    def create_compute_instance(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        version: int = 2,
+    ):
         compute_instance = CComputeInstancePointer()
-        self["CreateComputeInstance"](profileId, byref(compute_instance))
+        info = self.get_compute_instance_profile_info(
+            ci_profile, ci_engine_profile, version=version
+        )
+        self["CreateComputeInstance"](info.id, byref(compute_instance))
         return ComputeInstance(self.lib, compute_instance)
 
+    def get_compute_instance_remaining_capacity(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        version: int = 2,
+    ):
+        c_count = c_uint()
+        info = self.get_compute_instance_profile_info(
+            ci_profile, ci_engine_profile, version=version
+        )
+        self["GetComputeInstanceRemainingCapacity"](info.id, byref(c_count))
+        return c_count.value
 
-    # def nvmlGpuInstanceGetComputeInstanceProfileInfo(device, profile, engProfile, version=2):
-    #     if version == 2:
-    #         c_info = c_nvmlComputeInstanceProfileInfo_v2_t()
-    #         fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceProfileInfoV")
-    #     elif version == 1:
-    #         c_info = c_nvmlComputeInstanceProfileInfo_t()
-    #         fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceProfileInfo")
-    #     else:
-    #         raise NVMLError(NVML_ERROR_FUNCTION_NOT_FOUND)
-    #     ret = fn(device, profile, engProfile, byref(c_info))
-    #     _nvmlCheckReturn(ret)
-    #     return c_info
+    def get_compute_instance_profile_info(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        version: int = 2,
+    ) -> ComputeInstanceProfileInfo | ComputeInstanceProfileInfo_v2:
+        if version == 2:
+            c_info = ComputeInstanceProfileInfo_v2()
+            fn = self["GetComputeInstanceProfileInfoV"]
+        elif version == 1:
+            c_info = ComputeInstanceProfileInfo()
+            fn = self["GetComputeInstanceProfileInfo"]
+        else:
+            raise NVMLErrorFunctionNotFound
+        ret = fn(ci_profile.value, ci_engine_profile.value, byref(c_info))
+        return c_info
 
-# # Define function alias for the API exposed by NVML
-# nvmlGpuInstanceGetComputeInstanceProfileInfoV = nvmlGpuInstanceGetComputeInstanceProfileInfo
+    # # Define function alias for the API exposed by NVML
+    def get_compute_instance_profile_info_v(self, *args, **kwargs):
+        return self.get_compute_instance_profile_info(*args, **kwargs)
 
-# def nvmlGpuInstanceGetComputeInstanceRemainingCapacity(gpuInstance, profileId):
-#     c_count = c_uint()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceRemainingCapacity")
-#     ret = fn(gpuInstance, profileId, byref(c_count))
-#     _nvmlCheckReturn(ret)
-#     return c_count.value
+    def get_compute_instance_possible_placements(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        version: int = 2,
+    ):
+        info = self.get_compute_instance_profile_info(
+            ci_profile, ci_engine_profile, version=version
+        )
 
-# def nvmlGpuInstanceGetComputeInstancePossiblePlacements(gpuInstance, profileId, placementsRef, countRef):
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstancePossiblePlacements")
-#     ret = fn(gpuInstance, profileId, placementsRef, countRef)
-#     _nvmlCheckReturn(ret)
-#     return ret
+        # get # of entries in array
+        count = c_uint(0)
+        self["GetComputeInstancePossiblePlacements"](info.id, None, byref(count))
 
-# def nvmlGpuInstanceCreateComputeInstanceWithPlacement(gpuInstance, profileId, placement):
-#     c_instance = c_nvmlComputeInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceCreateComputeInstanceWithPlacement")
-#     ret = fn(gpuInstance, profileId, placement, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
+        placements_array = ComputeInstancePlacement * count
+        c_placements = placements_array()
+        self["GetComputeInstancePossiblePlacements"](
+            info.id, c_placements, byref(count)
+        )
+        return list(c_placements)
 
-# def nvmlGpuInstanceGetComputeInstances(gpuInstance, profileId, computeInstancesRef, countRef):
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstances")
-#     ret = fn(gpuInstance, profileId, computeInstancesRef, countRef)
-#     _nvmlCheckReturn(ret)
-#     return ret
+    def create_compute_instance_with_placement(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        placement: ComputeInstancePlacement,
+        version: int = 2,
+    ):
+        compute_instance = CComputeInstancePointer()
+        info = self.get_compute_instance_profile_info(
+            ci_profile, ci_engine_profile, version=version
+        )
+        self["CreateComputeInstanceWithPlacement"](
+            info.id, placement, byref(compute_instance)
+        )
+        return compute_instance
 
-# def nvmlGpuInstanceGetComputeInstanceById(gpuInstance, computeInstanceId):
-#     c_instance = c_nvmlComputeInstance_t()
-#     fn = _nvmlGetFunctionPointer("nvmlGpuInstanceGetComputeInstanceById")
-#     ret = fn(gpuInstance, computeInstanceId, byref(c_instance))
-#     _nvmlCheckReturn(ret)
-#     return c_instance
+    def get_compute_instances(
+        self,
+        ci_profile: ComputeInstanceProfile,
+        ci_engine_profile: ComputeInstanceEngineProfile,
+        version: int = 2,
+    ):
+        info = self.get_compute_instance_profile_info(
+            ci_profile, ci_engine_profile, version=version
+        )
+        compute_instance_array = ComputeInstance * info.instanceCount
+        c_compute_instances = compute_instance_array()
+        count = c_uint()
+        self["GetComputeInstances"](info.id, c_compute_instances, byref(count))
+        return [
+            ComputeInstance(self.lib, handle)
+            for handle in c_compute_instances[: count.value]
+        ]
+
+    def get_compute_instance_by_id(self, ci_id):
+        ci_handle = CComputeInstancePointer()
+        self["GetComputeInstanceById"](ci_id, byref(ci_handle))
+        return ComputeInstance(self.lib, ci_handle)

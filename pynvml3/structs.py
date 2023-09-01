@@ -583,3 +583,41 @@ class ComputeInstanceInfo(Structure):
         ("profileId", c_uint),
         ("placement", ComputeInstancePlacement),
     ]
+
+
+class ComputeInstanceProfileInfo(Structure):
+    _fields_ = [
+        ("id", c_uint),
+        ("sliceCount", c_uint),
+        ("instanceCount", c_uint),
+        ("multiprocessorCount", c_uint),
+        ("sharedCopyEngineCount", c_uint),
+        ("sharedDecoderCount", c_uint),
+        ("sharedEncoderCount", c_uint),
+        ("sharedJpegCount", c_uint),
+        ("sharedOfaCount", c_uint),
+    ]
+
+
+nvmlComputeInstanceProfileInfo_v2 = 0x02000088
+
+
+class ComputeInstanceProfileInfo_v2(PrintableStructure):
+    _fields_ = [
+        ("version", c_uint),
+        ("id", c_uint),
+        ("sliceCount", c_uint),
+        ("instanceCount", c_uint),
+        ("multiprocessorCount", c_uint),
+        ("sharedCopyEngineCount", c_uint),
+        ("sharedDecoderCount", c_uint),
+        ("sharedEncoderCount", c_uint),
+        ("sharedJpegCount", c_uint),
+        ("sharedOfaCount", c_uint),
+        ("name", c_char * NVML_DEVICE_NAME_V2_BUFFER_SIZE),
+    ]
+
+    def __init__(self):
+        super(ComputeInstanceProfileInfo_v2, self).__init__(
+            version=nvmlComputeInstanceProfileInfo_v2
+        )
