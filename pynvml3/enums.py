@@ -622,7 +622,7 @@ class GpuInstanceProfile(UIntEnum):
     PROFILE_2_SLICE_REV1 = 0x8
     PROFILE_1_SLICE_REV2 = 0x9
 
-    PROFILE_COUNT = 0xA
+    # PROFILE_COUNT = 0xA
 
 
 class ComputeInstanceProfile(UIntEnum):
@@ -636,9 +636,9 @@ class ComputeInstanceProfile(UIntEnum):
 
     PROFILE_1_SLICE_REV1 = 0x7
 
-    PROFILE_COUNT = 0x8
+    # PROFILE_COUNT = 0x8
 
 
 class ComputeInstanceEngineProfile(UIntEnum):
     SHARED = 0x0
-    COUNT = 0x1
+    # COUNT = 0x1

@@ -558,11 +558,11 @@ class GpuInstanceProfileInfo_v2(PrintableStructure):
         )
 
 
-class GpuInstancePlacement(Structure):
+class GpuInstancePlacement(PrintableStructure):
     _fields_ = [("start", c_uint), ("size", c_uint)]
 
 
-class GpuInstanceInfo(Structure):
+class GpuInstanceInfo(PrintableStructure):
     _fields_ = [
         ("device", CDevicePointer),
         ("id", c_uint),
@@ -571,11 +571,11 @@ class GpuInstanceInfo(Structure):
     ]
 
 
-class ComputeInstancePlacement(Structure):
+class ComputeInstancePlacement(PrintableStructure):
     _fields_ = [("start", c_uint), ("size", c_uint)]
 
 
-class ComputeInstanceInfo(Structure):
+class ComputeInstanceInfo(PrintableStructure):
     _fields_ = [
         ("device", CDevicePointer),
         ("gpuInstance", CComputeInstancePointer),
@@ -585,7 +585,7 @@ class ComputeInstanceInfo(Structure):
     ]
 
 
-class ComputeInstanceProfileInfo(Structure):
+class ComputeInstanceProfileInfo(PrintableStructure):
     _fields_ = [
         ("id", c_uint),
         ("sliceCount", c_uint),

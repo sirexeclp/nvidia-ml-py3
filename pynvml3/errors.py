@@ -22,6 +22,18 @@ class Return(UIntEnum):
     ERROR_RESET_REQUIRED = 16
     ERROR_OPERATING_SYSTEM = 17
     ERROR_LIB_RM_VERSION_MISMATCH = 18
+
+    # new
+    NVML_ERROR_IN_USE = 19
+    NVML_ERROR_MEMORY = 20
+    NVML_ERROR_NO_DATA = 21
+    NVML_ERROR_VGPU_ECC_NOT_SUPPORTED = 22
+    NVML_ERROR_INSUFFICIENT_RESOURCES = 23
+    NVML_ERROR_FREQ_NOT_SUPPORTED = 24
+    NVML_ERROR_ARGUMENT_VERSION_MISMATCH = 25
+    NVML_ERROR_DEPRECATED = 26
+    NVML_ERROR_NOT_READY = 27
+
     ERROR_UNKNOWN = 999
 
     def __str__(self):
@@ -44,6 +56,15 @@ class Return(UIntEnum):
             Return.ERROR_RESET_REQUIRED: "GPU requires restart",
             Return.ERROR_OPERATING_SYSTEM: "The operating system has blocked the request.",
             Return.ERROR_LIB_RM_VERSION_MISMATCH: "RM has detected an NVML/RM version mismatch.",
+            Return.NVML_ERROR_IN_USE: "An operation cannot be performed because the GPU is currently in use.",
+            Return.NVML_ERROR_MEMORY: "Insufficient memory.",
+            Return.NVML_ERROR_NO_DATA: "No data.",
+            Return.NVML_ERROR_VGPU_ECC_NOT_SUPPORTED: "The requested vgpu operation is not available on target device, becasue ECC is enabled.",
+            Return.NVML_ERROR_INSUFFICIENT_RESOURCES: "Ran out of critical resources, other than memory.",
+            Return.NVML_ERROR_FREQ_NOT_SUPPORTED: "The requested frequency is not supported.",
+            Return.NVML_ERROR_ARGUMENT_VERSION_MISMATCH: "The provided version is invalid/unsupported.",
+            Return.NVML_ERROR_DEPRECATED: "The requested functionality has been deprecated.",
+            Return.NVML_ERROR_NOT_READY: "",
             Return.ERROR_UNKNOWN: "Unknown Error",
         }
         return errcode_to_string[self]
@@ -68,6 +89,15 @@ class Return(UIntEnum):
             Return.ERROR_RESET_REQUIRED: NVMLErrorGPUResetRequired,
             Return.ERROR_OPERATING_SYSTEM: NVMLErrorOperatingSystem,
             Return.ERROR_LIB_RM_VERSION_MISMATCH: NVMLErrorVersionMismatch,
+            Return.NVML_ERROR_IN_USE: NVMLErrorInUse,
+            Return.NVML_ERROR_MEMORY: NVMLErrorMemory,
+            Return.NVML_ERROR_NO_DATA: NVMLErrorNoData,
+            Return.NVML_ERROR_VGPU_ECC_NOT_SUPPORTED: NVMLErrorVgpuEccNotSupported,
+            Return.NVML_ERROR_INSUFFICIENT_RESOURCES: NVMLErrorInsufficientResources,
+            Return.NVML_ERROR_FREQ_NOT_SUPPORTED: NVMLErrorFreqNotSupported,
+            Return.NVML_ERROR_ARGUMENT_VERSION_MISMATCH: NVMLErrorArgumentVersionMismatch,
+            Return.NVML_ERROR_DEPRECATED: NVMLErrorDeprecated,
+            Return.NVML_ERROR_NOT_READY: NVMLErrorNotReady,
             Return.ERROR_UNKNOWN: NVMLErrorUnknown,
         }
         return error2exception[self]
@@ -76,7 +106,7 @@ class Return(UIntEnum):
     def check(ret: int, *args):
         """Check the return-value; raises an Exception, if not successful."""
         if ret != Return.SUCCESS.value:
-            raise NVMLError.from_return(ret)(*args)
+            raise NVMLError.from_return(ret, *args)
 
 
 class NVMLError(Exception):
@@ -87,31 +117,30 @@ class NVMLError(Exception):
     def __str__(self):
         try:
             if self.return_value not in Return:
-                return str(self.get_error_string())
-            else:
-                return str(Return(self.return_value)) + str(self.args)
+                return self.get_error_string()
+            return str(Return(self.return_value)) + (str(self.args) if self.args else "")
         except NVMLErrorUninitialized:
-            return "NVML Error with code %d" % self.return_value
+            return f"NVML Error with code {self.return_value}"
 
     def __eq__(self, other):
         return self.return_value == other.return_value
 
     # Added in 2.285
-    def get_error_string(self):
+    def get_error_string(self) -> str:
         from pynvml3.pynvml import NVMLLib
 
         with NVMLLib() as lib:
             fn = lib.get_function_pointer("nvmlErrorString")
             fn.restype = c_char_p  # otherwise return is an int
             ret = fn(self.return_value)
-            return ret
+            return ret.decode("UTF-8")
 
     @staticmethod
-    def from_return(return_value: int):
+    def from_return(return_value: int, *args):
         if return_value in Return:
-            return Return(return_value).get_exception()
+            return Return(return_value).get_exception()(*args)
         else:
-            return NVMLError(return_value)
+            return NVMLError(return_value, *args)
 
 
 class NVMLErrorUninitialized(NVMLError):
@@ -202,6 +231,56 @@ class NVMLErrorOperatingSystem(NVMLError):
 class NVMLErrorVersionMismatch(NVMLError):
     def __init__(self):
         super().__init__(Return.ERROR_LIB_RM_VERSION_MISMATCH.value)
+
+
+class NVMLErrorInUse(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_IN_USE.value)
+
+
+class NVMLErrorInUse(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_IN_USE.value)
+
+
+class NVMLErrorMemory(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_MEMORY.value)
+
+
+class NVMLErrorNoData(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_NO_DATA.value)
+
+
+class NVMLErrorVgpuEccNotSupported(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_VGPU_ECC_NOT_SUPPORTED.value)
+
+
+class NVMLErrorInsufficientResources(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_INSUFFICIENT_RESOURCES.value)
+
+
+class NVMLErrorFreqNotSupported(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_FREQ_NOT_SUPPORTED.value)
+
+
+class NVMLErrorArgumentVersionMismatch(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_ARGUMENT_VERSION_MISMATCH.value)
+
+
+class NVMLErrorDeprecated(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_DEPRECATED.value)
+
+
+class NVMLErrorNotReady(NVMLError):
+    def __init__(self):
+        super().__init__(Return.NVML_ERROR_NOT_READY.value)
 
 
 class NVMLErrorUnknown(NVMLError):

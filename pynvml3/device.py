@@ -50,7 +50,7 @@ from pynvml3.errors import (
 )
 from pynvml3.event_set import EventSet
 from pynvml3.flags import EventType
-from pynvml3.mig import GpuInstance, MigDevice
+from pynvml3.mig import GpuInstance
 from pynvml3.nvlink import NvLink
 from pynvml3.structs import (
     CDevicePointer,
@@ -83,21 +83,25 @@ class Device:
 
     INFOROM_VERSION_BUFFER_SIZE = 16
     UUID_BUFFER_SIZE = 80
+    UUID_V2_BUFFER_SIZE = 96
     NAME_BUFFER_SIZE = 64
     SERIAL_BUFFER_SIZE = 30
     VBIOS_VERSION_BUFFER_SIZE = 32
     PCI_BUS_ID_BUFFER_SIZE = 16
 
-    def __init__(self, lib: "NVMLLib", handle: pointer):
+    def __init__(self, lib: "NVMLLib", handle: pointer, mig_version: int = 2):
         self.lib = lib
         self.handle = handle
+        self.mig_version = mig_version
 
     def __getitem__(self, key):
         fn_name = f"nvmlDevice{key}"
-        func = self.lib.get_function_pointer(fn_name, check=True)
+        func = self.lib.get_function_pointer(fn_name, check=False)
 
         def function_with_handle(*args, **kwargs):
-            return func(self.handle, *args, **kwargs)
+            ret = func(self.handle, *args, **kwargs)
+            Return.check(ret)
+            return
 
         return function_with_handle
 
@@ -378,9 +382,9 @@ class Device:
         return c_minor_number.value
 
     def get_uuid(self) -> str:
-        c_uuid = create_string_buffer(Device.UUID_BUFFER_SIZE)
+        c_uuid = create_string_buffer(Device.UUID_V2_BUFFER_SIZE)
         fn = self.lib.get_function_pointer("nvmlDeviceGetUUID")
-        ret = fn(self.handle, c_uuid, c_uint(Device.UUID_BUFFER_SIZE))
+        ret = fn(self.handle, c_uuid, c_uint(Device.UUID_V2_BUFFER_SIZE))
         Return.check(ret)
         return c_uuid.value.decode("UTF-8")
 
@@ -1301,11 +1305,11 @@ class Device:
         return EnableState(c_currentMode.value), EnableState(c_pendingMode.value)
 
     @lru_cache(maxsize=None)
-    def get_gpu_instance_profile_info(self, profile: GpuInstanceProfile, version=2):
-        if version == 2:
+    def get_gpu_instance_profile_info(self, profile: GpuInstanceProfile):
+        if self.mig_version == 2:
             c_info = GpuInstanceProfileInfo_v2()
             fn = self["GetGpuInstanceProfileInfoV"]
-        elif version == 1:
+        elif self.mig_version == 1:
             c_info = GpuInstanceProfileInfo()
             fn = self["GetGpuInstanceProfileInfo"]
         else:
@@ -1318,12 +1322,12 @@ class Device:
         return self.get_gpu_instance_profile_info(*args, **kwargs)
 
     def get_supported_gpu_instance_profiles(
-        self, version=2
+        self,
     ) -> dict[GpuInstanceProfile, GpuInstanceProfileInfo | GpuInstanceProfileInfo_v2]:
         supported_profiles = {}
         for profile in GpuInstanceProfile:
             try:
-                info = self.get_gpu_instance_profile_info(profile, version=version)
+                info = self.get_gpu_instance_profile_info(profile)
                 supported_profiles[profile] = info
             except NVMLErrorNotSupported:
                 pass
@@ -1331,38 +1335,50 @@ class Device:
                 pass
         return supported_profiles
 
-    def get_gpu_instance_remaining_capacity(
-        self, profile: GpuInstanceProfile, version=2
-    ) -> int:
+    def get_gpu_instance_remaining_capacity(self, profile: GpuInstanceProfile) -> int:
         c_count = c_uint()
-        info = self.get_gpu_instance_profile_info(profile, version=version)
+        info = self.get_gpu_instance_profile_info(profile)
         self["GetGpuInstanceRemainingCapacity"](info.id, byref(c_count))
         return c_count.value
 
-    def create_gpu_instance(
-        self, profile: GpuInstanceProfile, version=2
-    ) -> GpuInstance:
+    def create_gpu_instance(self, profile: GpuInstanceProfile) -> GpuInstance:
         gpu_instance_handle = CGpuInstancePointer()
-        info = self.get_gpu_instance_profile_info(profile, version=version)
+        info = self.get_gpu_instance_profile_info(profile)
         self["CreateGpuInstance"](info.id, byref(gpu_instance_handle))
-        return GpuInstance(self.lib, gpu_instance_handle)
+        return GpuInstance(self.lib, gpu_instance_handle, self, mig_version=self.mig_version)
 
-    def get_gpu_instances(
-        self, profile: GpuInstanceProfile, version=2
-    ) -> list[GpuInstance]:
-        info = self.get_gpu_instance_profile_info(profile, version=version)
+    def get_gpu_instances(self, profile: GpuInstanceProfile) -> list[GpuInstance]:
+        info = self.get_gpu_instance_profile_info(profile)
 
         gi_array = CGpuInstancePointer * info.instanceCount
         c_gi = gi_array()
         count = c_uint()
 
         self["GetGpuInstances"](info.id, c_gi, byref(count))
-        return [GpuInstance(self.lib, handle) for handle in c_gi[: count.value]]
+        return [
+            GpuInstance(self.lib, handle, self, mig_version=self.mig_version)
+            for handle in c_gi[: count.value]
+        ]
 
-    def get_gpu_instance_possible_placements(
-        self, profile: GpuInstanceProfile, version: int = 2
-    ):
-        info = self.get_gpu_instance_profile_info(profile, version=version)
+    def get_all_gpu_instances(self)-> dict[GpuInstanceProfile, list[GpuInstance]]:
+        instances = {}
+        for profile in self.get_supported_gpu_instance_profiles():
+            instances[profile] = self.get_gpu_instances(profile=profile)
+        return instances
+    
+    def destroy_all_gpu_instances(self, force = False, profile: GpuInstanceProfile | None = None):
+        if profile is None:
+            instances = self.get_all_gpu_instances()
+        else:
+            instances = {profile: self.get_gpu_instances(profile=profile)}
+        for instance_type in instances.values():
+            for instance in instance_type:
+                if force:
+                    instance.destroy_all_compute_instances()
+                instance.destroy()
+            
+    def get_gpu_instance_possible_placements(self, profile: GpuInstanceProfile):
+        info = self.get_gpu_instance_profile_info(profile)
 
         count = c_uint()
         self["GetGpuInstancePossiblePlacements_v2"](info.id, None, byref(count))
@@ -1376,49 +1392,70 @@ class Device:
 
         return list[c_gi_placement]
 
-
-    def create_gpu_instance_with_placement(self, profile: GpuInstanceProfile, placement: GpuInstancePlacement, version: int = 2):
+    def create_gpu_instance_with_placement(
+        self, profile: GpuInstanceProfile, placement: GpuInstancePlacement
+    ):
         gi_handle = CGpuInstancePointer()
-        info = self.get_gpu_instance_profile_info(profile, version = version)
+        info = self.get_gpu_instance_profile_info(profile)
         self["CreateGpuInstanceWithPlacement"](info.id, placement, byref(gi_handle))
-        return GpuInstance(gi_handle)
-
-
-    def get_gpu_instance_by_id(self, gi_id: int):
-        gi_handle = CGpuInstancePointer()
-        self["GetGpuInstanceById"](gi_id, byref(gi_handle))
-        return GpuInstance(self.lib, gi_handle)
-
+        return GpuInstance(self.lib, gi_handle, self, self.mig_version)
 
     def get_max_mig_device_count(self):
         count = c_uint()
         self["GetMaxMigDeviceCount"](byref(count))
         return count.value
 
-    def get_mig_device_handle_by_index(self, index):
+    def get_mig_device_by_index(self, index: int):
         c_index = c_uint(index)
         mig_handle = CDevicePointer()
-        self["GetMigDeviceHandleByIndex"](c_index, byref(mig_handle))
-        return MigDevice(mig_handle)
+        self["GetMigDeviceHandleByIndex"](c_index, byref(mig_handle), check=True)
+        return MigDevice(self.lib, mig_handle, mig_version=self.mig_version)
+    
+    def get_gpu_instance_by_id(self, gi_id: int):
+        handle = CGpuInstancePointer()
+        c_id = c_uint(gi_id)
+        self["GetGpuInstanceById"](c_id, byref(handle))
+        return GpuInstance(self.lib, handle, self, self.mig_version)
+    
+    def get_mig_devices(self) -> list["MigDevice"]:
+        mig_devices = []
+        for index in range(self.get_max_mig_device_count()):
+            try:
+                mig = self.get_mig_device_by_index(index)
+                mig_devices.append(mig)
+            except NVMLErrorNotFound:
+                break
+        return mig_devices
 
+class MigDevice(Device):
 
-
-
-# def nvmlDeviceIsMigDeviceHandle(device):
-#     c_isMigDevice = c_uint()
-#     fn = _nvmlGetFunctionPointer("nvmlDeviceIsMigDeviceHandle")
-#     ret = fn(device, byref(c_isMigDevice))
-#     _nvmlCheckReturn(ret)
-#     return c_isMigDevice
+    def get_compute_instance_id(self) -> int:
+        c_computeInstanceId = c_uint()
+        self["GetComputeInstanceId"](self.handle, byref(c_computeInstanceId))
+        return c_computeInstanceId.value
 
     def get_gpu_instance_id(self):
         c_gpuInstanceId = c_uint()
         self["GetGpuInstanceId"](byref(c_gpuInstanceId))
         return c_gpuInstanceId.value
+    
+    def get_gpu_instance(self):
+        return self.get_parent().get_gpu_instance_by_id(self.get_gpu_instance_id())
 
+    def get_device(self) -> Device:
+        """Return the parent device."""
+        handle = CDevicePointer()
+        self["GetDeviceHandleFromMigDeviceHandle"](byref(handle))
+        return Device(self.lib, handle, self.mig_version)
 
+    def get_parent(self) -> Device:
+        return self.get_device()
 
-
+# def is_mig_device_handle(self):
+#     c_isMigDevice = c_uint()
+#     func = self.lib.get_function_pointer("nvmlDeviceIsMigDeviceHandle", check=True)
+#     func(self.handle, byref(c_isMigDevice))
+#     return bool(c_isMigDevice)
 
 # def nvmlDeviceGetAttributes_v2(device):
 #     c_attrs = c_nvmlDeviceAttributes()
@@ -1432,16 +1469,5 @@ class Device:
 
 
 # == compute Instance?
-class MigDevice(Device):
-    def get_device(self):
-        from . import Device
-        device = CDevicePointer()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetDeviceHandleFromMigDeviceHandle", check=True)
-        fn(self.handle, byref(device))
-        return Device(device)
+# class MigDevice(Device):
 
-    def get_compute_instance_id(self):
-        c_computeInstanceId = c_uint()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetComputeInstanceId", check=True)
-        fn(self.handle, byref(c_computeInstanceId))
-        return c_computeInstanceId.value
