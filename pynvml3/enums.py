@@ -624,6 +624,22 @@ class GpuInstanceProfile(UIntEnum):
 
     # PROFILE_COUNT = 0xA
 
+    @classmethod
+    def from_int(cls, value: int):
+        from pynvml3.errors import NVMLErrorInvalidArgument
+        mapping = {
+            1: GpuInstanceProfile.PROFILE_1_SLICE,
+            2: GpuInstanceProfile.PROFILE_2_SLICE,
+            3: GpuInstanceProfile.PROFILE_3_SLICE,
+            4: GpuInstanceProfile.PROFILE_4_SLICE,
+            
+            6: GpuInstanceProfile.PROFILE_6_SLICE,
+            7: GpuInstanceProfile.PROFILE_7_SLICE,
+            8: GpuInstanceProfile.PROFILE_8_SLICE
+        }
+        if value not in mapping:
+            raise NVMLErrorInvalidArgument
+        return mapping[value]
 
 class ComputeInstanceProfile(UIntEnum):
     PROFILE_1_SLICE = 0x0
@@ -637,6 +653,23 @@ class ComputeInstanceProfile(UIntEnum):
     PROFILE_1_SLICE_REV1 = 0x7
 
     # PROFILE_COUNT = 0x8
+
+    @classmethod
+    def from_int(cls, value: int):
+        from pynvml3.errors import NVMLErrorInvalidArgument
+        mapping = {
+            1: ComputeInstanceProfile.PROFILE_1_SLICE,
+            2: ComputeInstanceProfile.PROFILE_2_SLICE,
+            3: ComputeInstanceProfile.PROFILE_3_SLICE,
+            4: ComputeInstanceProfile.PROFILE_4_SLICE,
+            
+            6: ComputeInstanceProfile.PROFILE_6_SLICE,
+            7: ComputeInstanceProfile.PROFILE_7_SLICE,
+            8: ComputeInstanceProfile.PROFILE_8_SLICE
+        }
+        if value not in mapping:
+            raise NVMLErrorInvalidArgument
+        return mapping[value]
 
 
 class ComputeInstanceEngineProfile(UIntEnum):
