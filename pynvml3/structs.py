@@ -366,6 +366,16 @@ class Memory(PrintableStructure):
     ]
     _fmt_ = {"<default>": "%d B"}
 
+class Memory_v2(PrintableStructure):
+    _fields_ = [
+        ('version', c_uint),
+        ('total', c_ulonglong),
+        ('reserved', c_ulonglong),
+        ('free', c_ulonglong),
+        ('used', c_ulonglong),
+    ]
+    _fmt_ = {'<default>': "%d B"}
+
 
 class ProcessInfo(PrintableStructure):
     _fields_ = [

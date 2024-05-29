@@ -20,6 +20,7 @@ from pynvml3.enums import (
     ClockId,
     EccCounterType,
     GpuInstanceProfile,
+    MemoryVersion,
     RestrictedAPI,
     EnableState,
     ComputeMode,
@@ -59,6 +60,7 @@ from pynvml3.structs import (
     GpuInstancePlacement,
     GpuInstanceProfileInfo,
     GpuInstanceProfileInfo_v2,
+    Memory_v2,
     PciInfo,
     Memory,
     BAR1Memory,
@@ -682,11 +684,16 @@ class Device:
     def get_pending_gpu_operation_mode(self) -> GpuOperationMode:
         return self.get_gpu_operation_mode()[1]
 
-    def get_memory_info(self) -> Memory:
-        c_memory = Memory()
-        fn = self.lib.get_function_pointer("nvmlDeviceGetMemoryInfo")
-        ret = fn(self.handle, byref(c_memory))
-        Return.check(ret)
+    def get_memory_info(self, version=1) -> Memory:
+        if version == 1:
+            c_memory = Memory()
+            self["GetMemoryInfo"](byref(c_memory))
+        elif version == 2:
+            c_memory = Memory_v2()
+            c_memory.version = MemoryVersion.V2.value
+            self["GetMemoryInfo_v2"](byref(c_memory))
+        else:
+            raise NVMLErrorFunctionNotFound
         return c_memory
 
     def get_bar1_memory_info(self) -> BAR1Memory:

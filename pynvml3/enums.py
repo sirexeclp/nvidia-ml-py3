@@ -675,3 +675,6 @@ class ComputeInstanceProfile(UIntEnum):
 class ComputeInstanceEngineProfile(UIntEnum):
     SHARED = 0x0
     # COUNT = 0x1
+
+class MemoryVersion(UIntEnum):
+    V2 = 0x02000028
